@@ -29,7 +29,6 @@ src/
 | `npm run compile` | Type-check + bundle via esbuild → `dist/extension.js` |
 | `npm run watch` | Run esbuild + tsc in watch mode (Ctrl+Shift+B in VS Code) |
 | `npm run package` | Production build (minified, no sourcemaps) |
-| `npm run watch-tests` | Watch-mode test compilation |
 
 **Debugging:** Press F5 in VS Code to launch an Extension Development Host window with the extension loaded.
 
@@ -37,11 +36,10 @@ src/
 
 - **Runtime:** `markdown-it` (^14.1.0)
 - **Dev:** `esbuild` (bundler), `typescript` (^5.5.4), `@types/vscode`, `@types/markdown-it`, `npm-run-all`
-- **No test runner** is currently configured — `src/test/extension.test.ts` has a placeholder test using `assert`.
 
 ## Important Constraints
 
-- `moduleResolution` is `node` (not `node16`/`bundler`), so use `import X from 'module'` with `esModuleInterop: true`.
+- `moduleResolution` is `Node16` (defaults from `module: Node16`), so use `import X from 'module'` with `esModuleInterop: true`.
 - `external: ['vscode']` in esbuild — the `vscode` module is provided by the extension host at runtime, never bundle it.
 - Reveal.js assets load from cdnjs CDN — the exported HTML requires internet access unless assets are vendored.
 - The preview Webview uses `retainContextWhenHidden: true` to preserve Reveal.js state when the panel is hidden.

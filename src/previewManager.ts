@@ -37,7 +37,7 @@ export class PreviewPanel {
     } else {
       this.panel = vscode.window.createWebviewPanel(
         "md2slide.preview",
-        `Preview: ${document.fileName.split("/").pop() ?? "Slide"}`,
+        `Preview: ${document.fileName.split(/[\\/]/).pop() ?? "Slide"}`,
         vscode.ViewColumn.Two,
         {
           enableScripts: true,

@@ -38,15 +38,7 @@
         "md2slide.theme": {
           "type": "string",
           "default": "black",
-          "enum": [
-            "black",
-            "white",
-            "league",
-            "beige",
-            "night",
-            "serif",
-            "simple"
-          ],
+          "enum": ["black", "white", "league", "beige", "night", "serif", "simple"],
           "description": "Reveal.js visual theme."
         }
       }
@@ -56,16 +48,18 @@
     "vscode:prepublish": "npm run package",
     "compile": "tsc --noEmit && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
+    "watch:tsc": "tsc --watch --noEmit",
     "watch:esbuild": "node esbuild.js --watch",
+    "watch-tests": "tsc --watch --noEmit",
     "package": "tsc --noEmit && node esbuild.js --production"
   },
   "dependencies": {
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.1.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/markdown-it": "^14.1.0",
     "@types/vscode": "^1.94.0",
     "esbuild": "^0.23.1",
     "npm-run-all": "^4.1.5",
