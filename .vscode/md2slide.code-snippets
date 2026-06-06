@@ -1,0 +1,81 @@
+{
+  "MD2Slide - Title Slide": {
+    "prefix": "slide-title",
+    "description": "A title slide with heading and subtitle",
+    "body": [
+      "# ${1:Presentation Title}",
+      "",
+      "> ${2:Subtitle or author name}",
+      ""
+    ]
+  },
+  "MD2Slide - Content Slide": {
+    "prefix": "slide-content",
+    "description": "A standard content slide with title and bullet points",
+    "body": [
+      "# ${1:Slide Title}",
+      "",
+      "- ${2:Point one}",
+      "- ${3:Point two}",
+      "- ${4:Point three}",
+      ""
+    ]
+  },
+  "MD2Slide - Two Column Layout": {
+    "prefix": "slide-2col",
+    "description": "A slide with two-column layout using reveal.js container",
+    "body": [
+      "# ${1:Title}",
+      "",
+      "<div class=\"container\">",
+      "<div class=\"col\">",
+      "",
+      "${2:Left column content}",
+      "",
+      "</div>",
+      "<div class=\"col\">",
+      "",
+      "${3:Right column content}",
+      "",
+      "</div>",
+      "</div>",
+      ""
+    ]
+  },
+  "MD2Slide - Image Slide": {
+    "prefix": "slide-image",
+    "description": "A full-width image slide with caption",
+    "body": [
+      "# ${1:Image Title}",
+      "",
+      "![${2:alt text}](${3:image-url})",
+      "",
+      "> ${4:Image caption}",
+      ""
+    ]
+  },
+  "MD2Slide - Quote Slide": {
+    "prefix": "slide-quote",
+    "description": "A slide featuring a blockquote",
+    "body": [
+      "# ${1:Topic}",
+      "",
+      "> ${2:Quote text}",
+      "",
+      "> — *${3:Author}*",
+      ""
+    ]
+  },
+  "MD2Slide - Code Slide": {
+    "prefix": "slide-code",
+    "description": "A slide with a fenced code block",
+    "body": [
+      "# ${1:Code Example}",
+      "",
+      "```$2",
+      "${3:// your code here}",
+      "```",
+      ""
+    ]
+  }
+}

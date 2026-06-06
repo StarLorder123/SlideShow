@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "./previewManager";
+import { OutlineProvider, SlideNode } from "./outlineProvider";
 
 let statusBar: vscode.StatusBarItem;
+let outlineProvider: OutlineProvider;
 
 function updateStatusBarVisibility(): void {
   const editor = vscode.window.activeTextEditor;
@@ -39,6 +41,14 @@ export function activate(context: vscode.ExtensionContext) {
 
   updateStatusBarVisibility();
 
+  // Outline provider
+  outlineProvider = new OutlineProvider();
+  const outlineTreeView = vscode.window.createTreeView("md2slideOutline", {
+    treeDataProvider: outlineProvider,
+  });
+  context.subscriptions.push(outlineTreeView);
+  PreviewPanel.getInstance().setOutlineProvider(outlineProvider);
+
   // Register the show-preview command
   const showPreviewCmd = vscode.commands.registerCommand(
     "md2slide.showPreview",
@@ -65,7 +75,50 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  context.subscriptions.push(showPreviewCmd, exportHtmlCmd);
+  // Register the toggle-overview command
+  const toggleOverviewCmd = vscode.commands.registerCommand(
+    "md2slide.toggleOverview",
+    () => {
+      PreviewPanel.getInstance().toggleOverview();
+    }
+  );
+
+  // Register the outline goto-slide command
+  const gotoSlideCmd = vscode.commands.registerCommand(
+    "md2slide.outline.gotoSlide",
+    async (args: { documentUri?: vscode.Uri; startLine: number }) => {
+      if (!args || !args.documentUri) {
+        return;
+      }
+      const doc = await vscode.workspace.openTextDocument(args.documentUri);
+      const editor = await vscode.window.showTextDocument(doc);
+      const position = new vscode.Position(args.startLine, 0);
+      editor.selection = new vscode.Selection(position, position);
+      editor.revealRange(
+        new vscode.Range(position, position),
+        vscode.TextEditorRevealType.InCenter
+      );
+
+      // Also navigate the webview to the same slide
+      PreviewPanel.getInstance().navigateToSlide(args.startLine);
+    }
+  );
+
+  // Register the refresh-outline command
+  const refreshOutlineCmd = vscode.commands.registerCommand(
+    "md2slide.refreshOutline",
+    () => {
+      outlineProvider.refresh();
+    }
+  );
+
+  context.subscriptions.push(
+    showPreviewCmd,
+    exportHtmlCmd,
+    toggleOverviewCmd,
+    gotoSlideCmd,
+    refreshOutlineCmd
+  );
 }
 
 export function deactivate() {

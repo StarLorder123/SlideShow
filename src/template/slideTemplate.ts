@@ -29,13 +29,18 @@ export class SlideTemplate {
             controls: true,
             progress: true,
             center: true,
-            hash: true
+            hash: true,
+            overview: true
         });
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'update') {
                 document.querySelector('.slides').innerHTML = message.htmlContent;
                 Reveal.sync();
+            } else if (message.command === 'toggleOverview') {
+                Reveal.toggleOverview();
+            } else if (message.command === 'navigate') {
+                Reveal.slide(message.index);
             }
         });
     </script>

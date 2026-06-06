@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
-import { compileMarkdown } from "./compiler/mdCompiler";
+import { compileMarkdown, parseSlides } from "./compiler/mdCompiler";
 import { SlideTemplate } from "./template/slideTemplate";
+import { OutlineProvider } from "./outlineProvider";
 
 /**
  * Singleton that manages the lifecycle of the preview Webview panel.
@@ -11,6 +12,7 @@ export class PreviewPanel {
   private panel: vscode.WebviewPanel | undefined;
   private debounceTimer: NodeJS.Timeout | undefined;
   private disposables: vscode.Disposable[] = [];
+  private outlineProvider: OutlineProvider | null = null;
 
   private constructor() {}
 
@@ -25,12 +27,26 @@ export class PreviewPanel {
   }
 
   /**
+   * Attach the outline provider for refreshing and navigation.
+   */
+  setOutlineProvider(provider: OutlineProvider): void {
+    this.outlineProvider = provider;
+  }
+
+  /**
    * Show the preview panel for the given document.
    */
   showPreview(document: vscode.TextDocument): void {
     if (document.languageId !== "markdown") {
       return;
     }
+
+    // Set context key to show views/commands only when preview is active
+    vscode.commands.executeCommand(
+      "setContext",
+      "md2slide.previewActive",
+      true
+    );
 
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.Two);
@@ -72,6 +88,30 @@ export class PreviewPanel {
       .get<string>("theme", "black");
 
     this.panel.webview.html = SlideTemplate.build(htmlContent, theme);
+
+    // Update outline provider
+    if (this.outlineProvider) {
+      this.outlineProvider.setDocument(document);
+      this.outlineProvider.refresh();
+    }
+  }
+
+  /**
+   * Toggle Reveal.js overview (thumbnail) mode in the webview.
+   */
+  toggleOverview(): void {
+    if (this.panel) {
+      this.panel.webview.postMessage({ command: "toggleOverview" });
+    }
+  }
+
+  /**
+   * Navigate to a specific slide index in the webview.
+   */
+  navigateToSlide(index: number): void {
+    if (this.panel) {
+      this.panel.webview.postMessage({ command: "navigate", index });
+    }
   }
 
   /**
@@ -154,6 +194,12 @@ export class PreviewPanel {
     }
     this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
+    this.outlineProvider = null;
+    vscode.commands.executeCommand(
+      "setContext",
+      "md2slide.previewActive",
+      false
+    );
     PreviewPanel.instance = null;
   }
 }

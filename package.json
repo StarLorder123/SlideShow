@@ -21,6 +21,20 @@
       {
         "command": "md2slide.exportHtml",
         "title": "MD2Slide: Export to Standalone HTML"
+      },
+      {
+        "command": "md2slide.toggleOverview",
+        "title": "MD2Slide: Toggle Slide Overview"
+      },
+      {
+        "command": "md2slide.outline.gotoSlide",
+        "title": "Go to Slide",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "md2slide.refreshOutline",
+        "title": "MD2Slide: Refresh Outline",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -29,6 +43,39 @@
           "command": "md2slide.showPreview",
           "when": "editorLangId == markdown",
           "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "md2slide.refreshOutline",
+          "when": "view == md2slideOutline",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "md2slide.toggleOverview",
+        "key": "ctrl+shift+o",
+        "mac": "cmd+shift+o",
+        "when": "md2slide.previewActive"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "md2slide",
+          "title": "MD2Slide",
+          "icon": "$(notebook)"
+        }
+      ]
+    },
+    "views": {
+      "md2slide": [
+        {
+          "id": "md2slideOutline",
+          "name": "Slides Outline",
+          "when": "md2slide.previewActive"
         }
       ]
     },
