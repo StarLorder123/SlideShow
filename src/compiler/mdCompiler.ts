@@ -1,10 +1,69 @@
 import MarkdownIt from "markdown-it";
+import * as yaml from "js-yaml";
 
 export interface SlideInfo {
   index: number;
   title: string;
   startLine: number;
   html: string;
+}
+
+export interface SlideMetadata {
+  logo?: string;
+  logoPosition?: "top-left" | "top-right";
+  title?: string;
+}
+
+/**
+ * Extract YAML frontmatter from the beginning of markdown text.
+ * Returns parsed metadata and the remaining body (ready for slide parsing).
+ * If no frontmatter is found, returns empty metadata and the original text.
+ */
+export function extractFrontmatter(text: string): {
+  metadata: SlideMetadata;
+  body: string;
+} {
+  if (!text || !text.startsWith("---")) {
+    return { metadata: {}, body: text };
+  }
+
+  // Find the closing --- that ends frontmatter.
+  // Start searching from index 3 to skip the opening ---.
+  const closingIdx = text.indexOf("\n---", 3);
+  if (closingIdx === -1) {
+    // No closing delimiter found — treat as regular content
+    return { metadata: {}, body: text };
+  }
+
+  // Extract YAML block (skip "---\n" = 4 chars, up to closingIdx)
+  const yamlBlock = text.substring(4, closingIdx);
+  // Extract body (skip "\n---\n" = 5 chars)
+  const body = text.substring(closingIdx + 5).trimStart();
+
+  const metadata: SlideMetadata = {};
+  try {
+    const parsed = yaml.load(yamlBlock);
+    if (parsed && typeof parsed === "object") {
+      const obj = parsed as Record<string, unknown>;
+      if (typeof obj.logo === "string") {
+        metadata.logo = obj.logo;
+      }
+      if (
+        obj.logoPosition === "top-left" ||
+        obj.logoPosition === "top-right"
+      ) {
+        metadata.logoPosition = obj.logoPosition;
+      }
+      if (typeof obj.title === "string") {
+        metadata.title = obj.title;
+      }
+    }
+  } catch (e) {
+    // Malformed YAML — log warning, continue without metadata
+    console.warn("MD2Slide: Failed to parse YAML frontmatter:", e);
+  }
+
+  return { metadata, body };
 }
 
 /**

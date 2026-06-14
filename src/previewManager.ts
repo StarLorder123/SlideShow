@@ -1,5 +1,10 @@
 import * as vscode from "vscode";
-import { compileMarkdown, parseSlides } from "./compiler/mdCompiler";
+import * as path from "path";
+import {
+  compileMarkdown,
+  extractFrontmatter,
+  SlideMetadata,
+} from "./compiler/mdCompiler";
 import { SlideTemplate } from "./template/slideTemplate";
 import { OutlineProvider } from "./outlineProvider";
 
@@ -13,6 +18,7 @@ export class PreviewPanel {
   private debounceTimer: NodeJS.Timeout | undefined;
   private disposables: vscode.Disposable[] = [];
   private outlineProvider: OutlineProvider | null = null;
+  private lastMetadata: SlideMetadata | null = null;
 
   private constructor() {}
 
@@ -77,17 +83,48 @@ export class PreviewPanel {
   /**
    * Render the current document into the webview.
    */
-  private render(document: vscode.TextDocument): void {
+  private async render(document: vscode.TextDocument): Promise<void> {
     if (!this.panel) {
       return;
     }
 
-    const htmlContent = compileMarkdown(document.getText());
-    const theme = vscode.workspace
-      .getConfiguration("md2slide")
-      .get<string>("theme", "black");
+    const text = document.getText();
+    const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
 
-    this.panel.webview.html = SlideTemplate.build(htmlContent, theme);
+    // Resolve metadata with priority: frontmatter > VS Code settings
+    const config = vscode.workspace.getConfiguration("md2slide");
+    const metadata: SlideMetadata = {
+      logo:
+        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
+      logoPosition:
+        frontMatterMeta.logoPosition ??
+        (config.get<string>("logoPosition") as SlideMetadata["logoPosition"]) ??
+        undefined,
+      title:
+        (frontMatterMeta.title ??
+          config.get<string>("presentationTitle")) ||
+        undefined,
+    };
+
+    // Resolve logo URL for webview context
+    const logoUrl = await this.resolveLogoUrl(
+      metadata.logo,
+      document,
+      false
+    );
+
+    const htmlContent = compileMarkdown(body);
+    const theme = config.get<string>("theme", "black");
+
+    this.panel.webview.html = SlideTemplate.build(htmlContent, {
+      theme,
+      logoUrl,
+      logoPosition: metadata.logoPosition,
+      title: metadata.title,
+    });
+
+    // Cache for change detection
+    this.lastMetadata = metadata;
 
     // Update outline provider
     if (this.outlineProvider) {
@@ -142,13 +179,42 @@ export class PreviewPanel {
 
   /**
    * Post a message to the existing webview to update slides without full reload.
+   * If metadata changed, falls back to a full render.
    */
-  private updateWebview(document: vscode.TextDocument): void {
+  private async updateWebview(
+    document: vscode.TextDocument
+  ): Promise<void> {
     if (!this.panel) {
       return;
     }
 
-    const htmlContent = compileMarkdown(document.getText());
+    const text = document.getText();
+    const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
+
+    const config = vscode.workspace.getConfiguration("md2slide");
+    const metadata: SlideMetadata = {
+      logo:
+        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
+      logoPosition:
+        frontMatterMeta.logoPosition ??
+        (config.get<string>(
+          "logoPosition"
+        ) as SlideMetadata["logoPosition"]) ??
+        undefined,
+      title:
+        (frontMatterMeta.title ??
+          config.get<string>("presentationTitle")) ||
+        undefined,
+    };
+
+    // If metadata changed, do a full render to update the overlay
+    if (!this.metadataEqual(this.lastMetadata, metadata)) {
+      await this.render(document);
+      return;
+    }
+
+    // Metadata unchanged — partial update (slides-only, overlay persists)
+    const htmlContent = compileMarkdown(body);
     this.panel.webview.postMessage({
       command: "update",
       htmlContent,
@@ -159,12 +225,39 @@ export class PreviewPanel {
    * Export the current markdown document as a standalone HTML file.
    */
   async exportHtml(document: vscode.TextDocument): Promise<void> {
-    const htmlContent = compileMarkdown(document.getText());
-    const theme = vscode.workspace
-      .getConfiguration("md2slide")
-      .get<string>("theme", "black");
+    const text = document.getText();
+    const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
 
-    const fullHtml = SlideTemplate.build(htmlContent, theme);
+    const config = vscode.workspace.getConfiguration("md2slide");
+    const metadata: SlideMetadata = {
+      logo:
+        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
+      logoPosition:
+        frontMatterMeta.logoPosition ??
+        (config.get<string>("logoPosition") as SlideMetadata["logoPosition"]) ??
+        undefined,
+      title:
+        (frontMatterMeta.title ??
+          config.get<string>("presentationTitle")) ||
+        undefined,
+    };
+
+    // Resolve logo URL for export context (base64 data URI for local files)
+    const logoUrl = await this.resolveLogoUrl(
+      metadata.logo,
+      document,
+      true
+    );
+
+    const htmlContent = compileMarkdown(body);
+    const theme = config.get<string>("theme", "black");
+
+    const fullHtml = SlideTemplate.build(htmlContent, {
+      theme,
+      logoUrl,
+      logoPosition: metadata.logoPosition,
+      title: metadata.title,
+    });
 
     const uri = await vscode.window.showSaveDialog({
       filters: { "HTML Files": ["html", "htm"] },
@@ -175,9 +268,92 @@ export class PreviewPanel {
     });
 
     if (uri) {
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(fullHtml, "utf-8"));
-      vscode.window.showInformationMessage("Slides exported successfully!");
+      await vscode.workspace.fs.writeFile(
+        uri,
+        Buffer.from(fullHtml, "utf-8")
+      );
+      vscode.window.showInformationMessage(
+        "Slides exported successfully!"
+      );
     }
+  }
+
+  /**
+   * Resolve the logo URL appropriate for the current context.
+   * - URLs (http/https) pass through unchanged
+   * - Local paths in webview: resolve via asWebviewUri
+   * - Local paths in export: read file and return base64 data URI
+   * Returns undefined if no logo or file missing.
+   */
+  private async resolveLogoUrl(
+    rawPath: string | undefined,
+    document: vscode.TextDocument,
+    forExport: boolean
+  ): Promise<string | undefined> {
+    if (!rawPath || rawPath.trim().length === 0) {
+      return undefined;
+    }
+
+    // URL detection: starts with http:// or https://
+    if (/^https?:\/\//i.test(rawPath)) {
+      return rawPath;
+    }
+
+    // Local path: resolve relative to the markdown file's directory
+    const docDir = path.dirname(document.uri.fsPath);
+    const resolvedPath = path.resolve(docDir, rawPath);
+
+    if (forExport) {
+      // Read file and embed as base64 data URI
+      try {
+        const uri = vscode.Uri.file(resolvedPath);
+        const data = await vscode.workspace.fs.readFile(uri);
+        const ext = path.extname(resolvedPath).toLowerCase();
+        const mimeType =
+          ext === ".png"
+            ? "image/png"
+            : ext === ".jpg" || ext === ".jpeg"
+              ? "image/jpeg"
+              : ext === ".gif"
+                ? "image/gif"
+                : ext === ".svg"
+                  ? "image/svg+xml"
+                  : ext === ".webp"
+                    ? "image/webp"
+                    : "image/png";
+        const base64 = Buffer.from(data).toString("base64");
+        return `data:${mimeType};base64,${base64}`;
+      } catch {
+        console.warn(
+          `MD2Slide: Logo file not found: ${resolvedPath}`
+        );
+        return undefined;
+      }
+    } else {
+      // Webview: convert to webview URI scheme
+      if (!this.panel) {
+        return undefined;
+      }
+      const uri = vscode.Uri.file(resolvedPath);
+      return this.panel.webview.asWebviewUri(uri).toString();
+    }
+  }
+
+  /**
+   * Compare two metadata objects for equality.
+   */
+  private metadataEqual(
+    a: SlideMetadata | null,
+    b: SlideMetadata
+  ): boolean {
+    if (!a) {
+      return false;
+    }
+    return (
+      a.logo === b.logo &&
+      a.logoPosition === b.logoPosition &&
+      a.title === b.title
+    );
   }
 
   /**

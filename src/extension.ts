@@ -52,7 +52,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Register the show-preview command
   const showPreviewCmd = vscode.commands.registerCommand(
     "md2slide.showPreview",
-    () => {
+    async (uri?: vscode.Uri) => {
+      // If triggered from explorer context menu, open the document first
+      if (uri) {
+        const doc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(doc);
+        PreviewPanel.getInstance().showPreview(doc);
+        return;
+      }
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
         vscode.window.showWarningMessage("No active editor found.");

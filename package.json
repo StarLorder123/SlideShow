@@ -41,8 +41,22 @@
       "editor/title": [
         {
           "command": "md2slide.showPreview",
-          "when": "editorLangId == markdown",
-          "group": "navigation"
+          "when": "editorLangId == markdown && resourceExtname == .md",
+          "group": "1_md2slide@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "md2slide.showPreview",
+          "when": "view == workbench.view.explorer && resourceExtname == .md",
+          "group": "inline"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "md2slide.showPreview",
+          "when": "resourceExtname == .md",
+          "group": "1_md2slide@1"
         }
       ],
       "view/title": [
@@ -54,6 +68,12 @@
       ]
     },
     "keybindings": [
+      {
+        "command": "md2slide.showPreview",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorLangId == markdown"
+      },
       {
         "command": "md2slide.toggleOverview",
         "key": "ctrl+shift+o",
@@ -82,10 +102,37 @@
     "configuration": {
       "title": "Markdown to Slide",
       "properties": {
+        "md2slide.logo": {
+          "type": "string",
+          "default": "",
+          "description": "Default logo path or URL shown on every slide. Supports local paths (relative to the markdown file) and http/https URLs."
+        },
+        "md2slide.logoPosition": {
+          "type": "string",
+          "default": "top-right",
+          "enum": [
+            "top-left",
+            "top-right"
+          ],
+          "description": "Default position for the logo and title overlay on slides."
+        },
+        "md2slide.presentationTitle": {
+          "type": "string",
+          "default": "",
+          "description": "Default presentation title shown on every slide."
+        },
         "md2slide.theme": {
           "type": "string",
           "default": "black",
-          "enum": ["black", "white", "league", "beige", "night", "serif", "simple"],
+          "enum": [
+            "black",
+            "white",
+            "league",
+            "beige",
+            "night",
+            "serif",
+            "simple"
+          ],
           "description": "Reveal.js visual theme."
         }
       }
@@ -101,12 +148,14 @@
     "package": "tsc --noEmit && node esbuild.js --production"
   },
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
+    "@types/js-yaml": "^4.0.9",
     "@types/markdown-it": "^14.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.43",
     "@types/vscode": "^1.94.0",
     "esbuild": "^0.23.1",
     "npm-run-all": "^4.1.5",

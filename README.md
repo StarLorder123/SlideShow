@@ -1,71 +1,93 @@
-# slideshow README
+﻿# MD2Slide
 
-This is the README for your extension "slideshow". After writing up a brief description, we recommend including the following sections.
+> Live-preview and export Markdown as stunning web-based slides. Built for developers who prefer code over PowerPoint.
+
+A VS Code extension that transforms Markdown files into [Reveal.js](https://revealjs.com/) presentations with hot-reload preview and standalone HTML export.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Live Preview** — See slides update in real-time as you type (300ms debounce)
+- **YAML Frontmatter** — Set logo, title, and position per-presentation
+- **Logo & Title Overlay** — Fixed header on every slide with logo image and/or title text
+- **Quick Launch** — Toolbar button in editor title bar + keyboard shortcut `Ctrl+Shift+M`
+- **Slide Outline** — Sidebar view listing all slides with click-to-navigate
+- **Overview Mode** — Thumbnail grid of all slides (`Ctrl+Shift+O`)
+- **Export HTML** — Standalone HTML file with embedded assets
 
-For example if there is an image subfolder under your extension project workspace:
+## Quick Start
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Open any `.md` file in VS Code
+2. Press `Ctrl+Shift+M` or click the 📺 button in the editor title bar
+3. Edit the markdown — preview updates instantly
+4. Export: `Ctrl+Shift+P` → `MD2Slide: Export to Standalone HTML`
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Slide Splitting
 
-## Requirements
+Use `---` on its own line to split content into separate slides:
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+```markdown
+# Slide 1
+Content here
 
 ---
 
-## Following extension guidelines
+# Slide 2
+More content
+```
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+## YAML Frontmatter
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+Add logo and title overlay to all slides via frontmatter at the top of your `.md` file:
 
-## Working with Markdown
+```yaml
+---
+logo: ./assets/logo.png   # local path or URL
+logoPosition: top-right    # "top-left" or "top-right"
+title: My Presentation
+---
+```
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+| Field | Description | Default |
+|-------|-------------|---------|
+| `logo` | Image URL or local path | (none) |
+| `logoPosition` | `top-left` or `top-right` | `top-right` |
+| `title` | Presentation title text | (none) |
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+**Local paths** are resolved relative to the `.md` file. On export, images are embedded as base64 — the output HTML is fully self-contained.
 
-## For more information
+**VS Code settings** (`md2slide.logo`, `md2slide.logoPosition`, `md2slide.presentationTitle`) provide global defaults. Frontmatter values override them.
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+## Commands
 
-**Enjoy!**
+| Command | Keybinding |
+|---------|------------|
+| `MD2Slide: Open Presentation Preview` | `Ctrl+Shift+M` |
+| `MD2Slide: Export to Standalone HTML` | — |
+| `MD2Slide: Toggle Slide Overview` | `Ctrl+Shift+O` |
+| `MD2Slide: Refresh Outline` | — |
+
+## Configuration
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `md2slide.theme` | `string` | `black` | Reveal.js theme: `black`, `white`, `league`, `beige`, `night`, `serif`, `simple` |
+| `md2slide.logo` | `string` | `""` | Default logo path or URL |
+| `md2slide.logoPosition` | `string` | `top-right` | `top-left` or `top-right` |
+| `md2slide.presentationTitle` | `string` | `""` | Default presentation title |
+
+## Development
+
+```bash
+pnpm install        # Install dependencies
+pnpm run compile    # Type-check + bundle
+pnpm run watch      # Watch mode
+```
+
+Press **F5** in VS Code to launch the Extension Development Host.
+
+## Tech Stack
+
+- [Reveal.js](https://revealjs.com/) — Presentation framework
+- [markdown-it](https://github.com/markdown-it/markdown-it) — Markdown parser
+- [js-yaml](https://github.com/nodeca/js-yaml) — YAML frontmatter parser
+- TypeScript + esbuild

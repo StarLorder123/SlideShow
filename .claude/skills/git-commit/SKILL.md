@@ -14,8 +14,14 @@ Generate and execute a git commit based on the current working tree state.
    - Use imperative mood: `feat: add X`, not `added X` or `adding X`.
    - If changes span multiple concerns, add a body with bullet points.
    - First line under 72 characters.
-4. **Stage and commit** — Run `git add -A && git commit -m "<msg>"`.
-5. **Report** — Show the commit hash and summary.
+4. **Update CHANGELOG.md** — Read `CHANGELOG.md` and append a bullet entry under the `## [Unreleased]` section summarizing the changes. Match the conventional commit type:
+   - `feat` → `### Added`
+   - `fix` → `### Fixed`
+   - `refactor` → `### Changed`
+   - `docs` → `### Documentation`
+   - `chore` / `style` / `test` / `perf` → keep under `[Unreleased]` as a plain bullet.
+5. **Stage and commit** — Run `git add -A && git commit -m "<msg>"`.
+6. **Report** — Show the commit hash and summary.
 
 ## Rules
 

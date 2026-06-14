@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { parseSlides, SlideInfo } from "./compiler/mdCompiler";
+import {
+  parseSlides,
+  SlideInfo,
+  extractFrontmatter,
+} from "./compiler/mdCompiler";
 
 /**
  * TreeDataProvider that shows the slide outline in a sidebar view.
@@ -23,9 +27,12 @@ export class OutlineProvider
    */
   setDocument(doc: vscode.TextDocument | null): void {
     this.document = doc;
-    this.slides = doc && doc.languageId === "markdown"
-      ? parseSlides(doc.getText())
-      : [];
+    if (doc && doc.languageId === "markdown") {
+      const { body } = extractFrontmatter(doc.getText());
+      this.slides = parseSlides(body);
+    } else {
+      this.slides = [];
+    }
   }
 
   /**
