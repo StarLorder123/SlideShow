@@ -1,7 +1,7 @@
 export interface SlideBuildOptions {
   theme?: string;
   logoUrl?: string;
-  logoPosition?: "top-left" | "top-right";
+  logoPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   title?: string;
 }
 
@@ -39,8 +39,10 @@ export class SlideTemplate {
             padding: 16px 24px;
             pointer-events: none;
         }
-        .md2slide-overlay--top-left  { top: 0; left: 0; flex-direction: row; }
-        .md2slide-overlay--top-right { top: 0; right: 0; flex-direction: row-reverse; }
+        .md2slide-overlay--top-left     { top: 0; left: 0; flex-direction: row; }
+        .md2slide-overlay--top-right    { top: 0; right: 0; flex-direction: row-reverse; }
+        .md2slide-overlay--bottom-left  { bottom: 0; left: 0; flex-direction: row; }
+        .md2slide-overlay--bottom-right { bottom: 0; right: 0; flex-direction: row-reverse; }
         .md2slide-logo {
             max-height: 36px;
             max-width: 140px;
@@ -74,11 +76,48 @@ export class SlideTemplate {
             hash: true,
             overview: true
         });
+
+        function updateSlideTitle(slide) {
+            var titleEl = document.querySelector('.md2slide-overlay .md2slide-title');
+            var overlay = document.querySelector('.md2slide-overlay');
+            if (!overlay) return;
+
+            var slideTitle = slide ? slide.getAttribute('data-slide-title') : null;
+            var slidePos = slide ? slide.getAttribute('data-slide-title-position') : null;
+
+            // If overlay has no title span but we have a slide title, create one
+            if (slideTitle && !titleEl) {
+                titleEl = document.createElement('span');
+                titleEl.className = 'md2slide-title';
+                overlay.appendChild(titleEl);
+            }
+
+            if (titleEl && slideTitle) {
+                titleEl.textContent = slideTitle;
+            }
+
+            // Update position class if specified
+            if (slidePos) {
+                overlay.className = overlay.className.replace(/md2slide-overlay--\\S+/g, '');
+                overlay.classList.add('md2slide-overlay--' + slidePos);
+            }
+        }
+
+        Reveal.on('slidechanged', function(event) {
+            updateSlideTitle(event.currentSlide);
+        });
+
+        Reveal.on('ready', function(event) {
+            updateSlideTitle(event.currentSlide);
+        });
+
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'update') {
                 document.querySelector('.slides').innerHTML = message.htmlContent;
                 Reveal.sync();
+                // Re-trigger title update after partial content refresh
+                updateSlideTitle(Reveal.getCurrentSlide());
             } else if (message.command === 'toggleOverview') {
                 Reveal.toggleOverview();
             } else if (message.command === 'navigate') {
@@ -101,10 +140,7 @@ export class SlideTemplate {
       return "";
     }
 
-    const posClass =
-      options.logoPosition === "top-left"
-        ? "md2slide-overlay--top-left"
-        : "md2slide-overlay--top-right";
+    const posClass = `md2slide-overlay--${options.logoPosition ?? "top-right"}`;
 
     let inner = "";
     if (hasLogo) {

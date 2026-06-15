@@ -1,17 +1,47 @@
 import MarkdownIt from "markdown-it";
 import * as yaml from "js-yaml";
 
+export type CornerPosition =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+/** Per-slide or global background configuration. */
+export interface SlideBackground {
+  color?: string;
+  image?: string;
+  size?: string;
+  position?: string;
+  repeat?: string;
+  opacity?: number;
+}
+
 export interface SlideInfo {
   index: number;
   title: string;
   startLine: number;
   html: string;
+  /** Per-slide overlay title extracted from <!-- slide-title: ... --> comment. */
+  slideOverlay?: {
+    title: string;
+    position?: CornerPosition;
+  };
+  /** Per-slide background extracted from <!-- slide-bg: ... --> comment. */
+  slideBackground?: SlideBackground;
 }
 
 export interface SlideMetadata {
   logo?: string;
-  logoPosition?: "top-left" | "top-right";
+  logoPosition?: CornerPosition;
   title?: string;
+  /** Global slide background. */
+  backgroundColor?: string;
+  backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundPosition?: string;
+  backgroundRepeat?: string;
+  backgroundOpacity?: number;
 }
 
 /**
@@ -50,12 +80,33 @@ export function extractFrontmatter(text: string): {
       }
       if (
         obj.logoPosition === "top-left" ||
-        obj.logoPosition === "top-right"
+        obj.logoPosition === "top-right" ||
+        obj.logoPosition === "bottom-left" ||
+        obj.logoPosition === "bottom-right"
       ) {
         metadata.logoPosition = obj.logoPosition;
       }
       if (typeof obj.title === "string") {
         metadata.title = obj.title;
+      }
+      // Background fields
+      if (typeof obj.backgroundColor === "string") {
+        metadata.backgroundColor = obj.backgroundColor;
+      }
+      if (typeof obj.backgroundImage === "string") {
+        metadata.backgroundImage = obj.backgroundImage;
+      }
+      if (typeof obj.backgroundSize === "string") {
+        metadata.backgroundSize = obj.backgroundSize;
+      }
+      if (typeof obj.backgroundPosition === "string") {
+        metadata.backgroundPosition = obj.backgroundPosition;
+      }
+      if (typeof obj.backgroundRepeat === "string") {
+        metadata.backgroundRepeat = obj.backgroundRepeat;
+      }
+      if (typeof obj.backgroundOpacity === "number") {
+        metadata.backgroundOpacity = obj.backgroundOpacity;
       }
     }
   } catch (e) {
@@ -66,10 +117,106 @@ export function extractFrontmatter(text: string): {
   return { metadata, body };
 }
 
+/** Regex to detect per-slide title: <!-- slide-title: text | position --> */
+const SLIDE_TITLE_RE =
+  /<!--\s*slide-title:\s*(.+?)\s*(?:\|\s*(top-left|top-right|bottom-left|bottom-right))?\s*-->/;
+
+/** Escape a string for safe use in HTML text content. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** Escape a string for safe use in an HTML attribute value. */
+function escapeAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** Build the overlay HTML element for a per-slide title. */
+function buildSlideOverlayHtml(
+  title: string,
+  position: CornerPosition
+): string {
+  return `<div class="md2slide-slide-overlay md2slide-slide-overlay--${position}"><span class="md2slide-slide-title">${escapeHtml(title)}</span></div>`;
+}
+
+/** Regex to detect per-slide background: <!-- slide-bg: key=value | ... --> */
+const SLIDE_BG_RE = /<!--\s*slide-bg:\s*(.+?)\s*-->/;
+
+/**
+ * Parse the inner content of <!-- slide-bg: ... --> into a SlideBackground.
+ * Format: key=value | key=value | ...
+ */
+function parseSlideBg(raw: string): SlideBackground {
+  const bg: SlideBackground = {};
+  const pairs = raw.split(/\s*\|\s*/);
+  for (const pair of pairs) {
+    const eqIdx = pair.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = pair.substring(0, eqIdx).trim();
+    const value = pair.substring(eqIdx + 1).trim();
+    if (!value) continue;
+    switch (key) {
+      case "color":
+        bg.color = value;
+        break;
+      case "image":
+        bg.image = value;
+        break;
+      case "size":
+        bg.size = value;
+        break;
+      case "position":
+        bg.position = value;
+        break;
+      case "repeat":
+        bg.repeat = value;
+        break;
+      case "opacity":
+        bg.opacity = parseFloat(value);
+        break;
+    }
+  }
+  return bg;
+}
+
+/**
+ * Build data-background-* HTML attributes from a SlideBackground.
+ */
+function buildDataBgAttrs(bg: SlideBackground): string {
+  let attrs = "";
+  if (bg.color) {
+    attrs += ` data-background-color="${escapeHtml(bg.color)}"`;
+  }
+  if (bg.image) {
+    attrs += ` data-background-image="${escapeHtml(bg.image)}"`;
+  }
+  if (bg.size) {
+    attrs += ` data-background-size="${escapeHtml(bg.size)}"`;
+  }
+  if (bg.position) {
+    attrs += ` data-background-position="${escapeHtml(bg.position)}"`;
+  }
+  if (bg.repeat) {
+    attrs += ` data-background-repeat="${escapeHtml(bg.repeat)}"`;
+  }
+  if (bg.opacity !== undefined && !isNaN(bg.opacity)) {
+    attrs += ` data-background-opacity="${bg.opacity}"`;
+  }
+  return attrs;
+}
+
 /**
  * Parse markdown text into structured slide data.
  * Splits on `\n---\n`, extracts first heading as title,
  * renders HTML, and tracks starting line number.
+ * Also detects per-slide <!-- slide-title: ... --> comments.
  */
 export function parseSlides(text: string): SlideInfo[] {
   const md = new MarkdownIt({ html: true, breaks: false });
@@ -89,7 +236,6 @@ export function parseSlides(text: string): SlideInfo[] {
       // Skip delimiter, just advance line counter
       currentLine += 3;
     } else if (segment.trim().length > 0) {
-      const startLine = currentLine;
       currentLine += segment.split("\n").length;
       segments.push(segment);
     } else {
@@ -99,14 +245,37 @@ export function parseSlides(text: string): SlideInfo[] {
   }
 
   const slides: SlideInfo[] = [];
-  let lineOffset = 0;
 
   for (let i = 0; i < segments.length; i++) {
     const trimmed = segments[i].trim();
     if (!trimmed) continue;
 
-    // Extract first heading (# ... or ## ...)
-    const titleMatch = trimmed.match(/^#{1,6}\s+(.+)$/m);
+    // Detect per-slide title comment: <!-- slide-title: text | position -->
+    let modifiedContent = trimmed;
+    const overlayMatch = trimmed.match(SLIDE_TITLE_RE);
+    let slideOverlay: SlideInfo["slideOverlay"] = undefined;
+
+    if (overlayMatch) {
+      slideOverlay = {
+        title: overlayMatch[1].trim(),
+        position: overlayMatch[2] as CornerPosition | undefined,
+      };
+      // Strip the comment so it does not appear in rendered HTML
+      modifiedContent = modifiedContent.replace(SLIDE_TITLE_RE, "").trim();
+    }
+
+    // Detect per-slide background comment: <!-- slide-bg: key=value | ... -->
+    const bgMatch = modifiedContent.match(SLIDE_BG_RE);
+    let slideBackground: SlideBackground | undefined;
+
+    if (bgMatch) {
+      slideBackground = parseSlideBg(bgMatch[1]);
+      // Strip the comment from content
+      modifiedContent = modifiedContent.replace(SLIDE_BG_RE, "").trim();
+    }
+
+    // Extract first heading (# ... or ## ...) from modified content
+    const titleMatch = modifiedContent.match(/^#{1,6}\s+(.+)$/m);
     const title = titleMatch
       ? titleMatch[1].trim()
       : `Slide ${i + 1}`;
@@ -126,7 +295,9 @@ export function parseSlides(text: string): SlideInfo[] {
       index: i,
       title,
       startLine,
-      html: `<section>${md.render(trimmed)}</section>`,
+      html: `<section>${md.render(modifiedContent)}</section>`,
+      slideOverlay,
+      slideBackground,
     });
   }
 
@@ -135,9 +306,63 @@ export function parseSlides(text: string): SlideInfo[] {
 
 /**
  * Compile markdown into a single HTML string of <section> elements.
- * (Backwards-compatible with existing code.)
+ * Injects data-background-* and data-slide-title/data-slide-title-position
+ * attributes on each <section> tag.
  */
-export function compileMarkdown(text: string): string {
+export function compileMarkdown(
+  text: string,
+  options?: {
+    globalTitle?: string;
+    globalPosition?: CornerPosition;
+    globalBackground?: SlideBackground;
+    resolveImageUrl?: (path: string) => string | undefined;
+  }
+): string {
   const slides = parseSlides(text);
-  return slides.map((s) => s.html).filter(Boolean).join("\n");
+  const globalPos = options?.globalPosition ?? "top-right";
+  const globalBg = options?.globalBackground;
+
+  return slides
+    .map((s) => {
+      // --- Merge backgrounds: per-slide overrides global ---
+      const effectiveBg: SlideBackground = {};
+      if (globalBg?.color) effectiveBg.color = globalBg.color;
+      if (globalBg?.image) effectiveBg.image = globalBg.image;
+      if (globalBg?.size) effectiveBg.size = globalBg.size;
+      if (globalBg?.position) effectiveBg.position = globalBg.position;
+      if (globalBg?.repeat) effectiveBg.repeat = globalBg.repeat;
+      if (globalBg?.opacity !== undefined) effectiveBg.opacity = globalBg.opacity;
+
+      if (s.slideBackground) {
+        if (s.slideBackground.color !== undefined) effectiveBg.color = s.slideBackground.color;
+        if (s.slideBackground.image !== undefined) effectiveBg.image = s.slideBackground.image;
+        if (s.slideBackground.size !== undefined) effectiveBg.size = s.slideBackground.size;
+        if (s.slideBackground.position !== undefined) effectiveBg.position = s.slideBackground.position;
+        if (s.slideBackground.repeat !== undefined) effectiveBg.repeat = s.slideBackground.repeat;
+        if (s.slideBackground.opacity !== undefined) effectiveBg.opacity = s.slideBackground.opacity;
+      }
+
+      if (effectiveBg.image && options?.resolveImageUrl) {
+        const resolved = options.resolveImageUrl(effectiveBg.image);
+        if (resolved) effectiveBg.image = resolved;
+      }
+
+      // --- Build extra attributes for <section> tag ---
+      let extraAttrs = buildDataBgAttrs(effectiveBg);
+
+      const effectiveTitle = s.slideOverlay?.title ?? options?.globalTitle;
+      if (effectiveTitle) {
+        const position = s.slideOverlay?.position ?? globalPos;
+        extraAttrs += ` data-slide-title="${escapeAttr(effectiveTitle)}"`;
+        extraAttrs += ` data-slide-title-position="${position}"`;
+      }
+
+      // Inject attributes into <section> tag
+      if (extraAttrs) {
+        return s.html.replace(/^(<section)(>)/, `$1${extraAttrs}$2`);
+      }
+      return s.html;
+    })
+    .filter(Boolean)
+    .join("\n");
 }

@@ -112,7 +112,9 @@
           "default": "top-right",
           "enum": [
             "top-left",
-            "top-right"
+            "top-right",
+            "bottom-left",
+            "bottom-right"
           ],
           "description": "Default position for the logo and title overlay on slides."
         },
@@ -120,6 +122,36 @@
           "type": "string",
           "default": "",
           "description": "Default presentation title shown on every slide."
+        },
+        "md2slide.backgroundColor": {
+          "type": "string",
+          "default": "",
+          "description": "Default background color for all slides (CSS color value)."
+        },
+        "md2slide.backgroundImage": {
+          "type": "string",
+          "default": "",
+          "description": "Default background image URL or local path for all slides."
+        },
+        "md2slide.backgroundSize": {
+          "type": "string",
+          "default": "cover",
+          "description": "Default background size (cover, contain, auto, etc.)."
+        },
+        "md2slide.backgroundPosition": {
+          "type": "string",
+          "default": "center",
+          "description": "Default background position (CSS background-position value)."
+        },
+        "md2slide.backgroundRepeat": {
+          "type": "string",
+          "default": "no-repeat",
+          "description": "Default background repeat (no-repeat, repeat, repeat-x, repeat-y)."
+        },
+        "md2slide.backgroundOpacity": {
+          "type": "number",
+          "default": 1.0,
+          "description": "Default background opacity (0.0 to 1.0)."
         },
         "md2slide.theme": {
           "type": "string",
