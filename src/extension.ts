@@ -69,6 +69,14 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Register the close-preview command
+  const closePreviewCmd = vscode.commands.registerCommand(
+    "md2slide.closePreview",
+    async () => {
+      await PreviewPanel.getInstance().closePreview();
+    }
+  );
+
   // Register the export-html command
   const exportHtmlCmd = vscode.commands.registerCommand(
     "md2slide.exportHtml",
@@ -121,6 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     showPreviewCmd,
+    closePreviewCmd,
     exportHtmlCmd,
     toggleOverviewCmd,
     gotoSlideCmd,

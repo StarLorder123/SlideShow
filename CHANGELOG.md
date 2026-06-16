@@ -4,6 +4,8 @@
 
 ### Added
 
+- Full-area preview mode: opens in same editor column, closes markdown tab, fills entire editor area
+- Toggle button on preview webview tab to return to markdown editor (`md2slide.closePreview`)
 - Logo & title overlay via YAML frontmatter (`logo`, `logoPosition`, `title`)
 - `md2slide.logo`, `md2slide.logoPosition`, `md2slide.presentationTitle` VS Code configuration
 - Editor toolbar button (left of layout actions) + keyboard shortcut `Ctrl+Shift+M` for quick preview launch

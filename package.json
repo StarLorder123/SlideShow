@@ -19,6 +19,11 @@
         "icon": "$(screen-full)"
       },
       {
+        "command": "md2slide.closePreview",
+        "title": "MD2Slide: Return to Markdown Editor",
+        "icon": "$(edit)"
+      },
+      {
         "command": "md2slide.exportHtml",
         "title": "MD2Slide: Export to Standalone HTML"
       },
@@ -41,8 +46,13 @@
       "editor/title": [
         {
           "command": "md2slide.showPreview",
-          "when": "editorLangId == markdown && resourceExtname == .md",
-          "group": "1_md2slide@1"
+          "when": "editorLangId == markdown && resourceExtname == .md && !md2slide.previewActive",
+          "group": "navigation"
+        },
+        {
+          "command": "md2slide.closePreview",
+          "when": "activeWebviewPanelId == md2slide.preview",
+          "group": "navigation"
         }
       ],
       "view/item/context": [

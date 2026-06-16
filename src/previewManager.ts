@@ -22,6 +22,7 @@ export class PreviewPanel {
   private outlineProvider: OutlineProvider | null = null;
   private lastMetadata: SlideMetadata | null = null;
   private lastHasPerSlideTitles: boolean = false;
+  private lastDocumentUri: vscode.Uri | null = null;
 
   private constructor() {}
 
@@ -50,6 +51,9 @@ export class PreviewPanel {
       return;
     }
 
+    // Track the document for restoration on close
+    this.lastDocumentUri = document.uri;
+
     // Set context key to show views/commands only when preview is active
     vscode.commands.executeCommand(
       "setContext",
@@ -58,12 +62,12 @@ export class PreviewPanel {
     );
 
     if (this.panel) {
-      this.panel.reveal(vscode.ViewColumn.Two);
+      this.panel.reveal(vscode.ViewColumn.Active);
     } else {
       this.panel = vscode.window.createWebviewPanel(
         "md2slide.preview",
         `Preview: ${document.fileName.split(/[\\/]/).pop() ?? "Slide"}`,
-        vscode.ViewColumn.Two,
+        vscode.ViewColumn.Active,
         {
           enableScripts: true,
           retainContextWhenHidden: true,
@@ -79,8 +83,55 @@ export class PreviewPanel {
       );
     }
 
+    // Close the markdown editor tab so the preview fills the area
+    this.closeMarkdownTab(document.uri);
+
+    // Maximize the editor group to fill the entire editor area
+    vscode.commands.executeCommand('workbench.action.maximizeEditor');
+
     this.render(document);
     this.registerHotReload(document);
+  }
+
+  /**
+   * Close the markdown editor tab matching the given URI.
+   */
+  private closeMarkdownTab(uri: vscode.Uri): void {
+    // Use a microtask to ensure the webview tab exists before we close the md tab
+    setTimeout(async () => {
+      for (const group of vscode.window.tabGroups.all) {
+        for (const tab of group.tabs) {
+          const input = tab.input;
+          if (
+            input instanceof vscode.TabInputText &&
+            input.uri.toString() === uri.toString()
+          ) {
+            await vscode.window.tabGroups.close(tab);
+            return;
+          }
+        }
+      }
+    }, 50);
+  }
+
+  /**
+   * Close the preview panel and restore the markdown editor.
+   */
+  async closePreview(): Promise<void> {
+    // Restore the original markdown document if we have its URI
+    if (this.lastDocumentUri) {
+      try {
+        await vscode.window.showTextDocument(this.lastDocumentUri);
+      } catch {
+        // Document may have been deleted; ignore
+      }
+    }
+
+    // Un-maximize the editor to restore normal layout
+    vscode.commands.executeCommand('workbench.action.evenEditorWidths');
+
+    // Dispose the webview panel (this also calls this.dispose())
+    this.dispose();
   }
 
   /**
@@ -574,6 +625,7 @@ export class PreviewPanel {
     this.disposables.forEach((d) => d.dispose());
     this.disposables = [];
     this.outlineProvider = null;
+    this.lastDocumentUri = null;
     vscode.commands.executeCommand(
       "setContext",
       "md2slide.previewActive",
