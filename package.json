@@ -2,7 +2,7 @@
   "name": "slideshow",
   "displayName": "SlideShow",
   "description": "Live-preview and export Markdown as stunning web-based slides. Built for developers who prefer code over PowerPoint",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -205,6 +205,6 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs"
 }

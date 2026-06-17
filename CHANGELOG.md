@@ -13,6 +13,7 @@
 - `example.md` demonstrating frontmatter and preview features
 - Git-commit skill with CHANGELOG auto-update
 - Explorer context menu: right-click `.md` file → "Open Presentation Preview"
+- MIT license added, package metadata updated (`license` field, version bump to 0.1.0)
 
 ### Changed
 
