@@ -4,6 +4,7 @@
 
 ### Added
 
+- Samples directory with 5 categorized demo files (`01-basic-presentation`, `02-corporate-branded`, `03-per-slide-titles`, `04-background-showcase`, `05-full-feature-demo`)
 - Full-area preview mode: opens in same editor column, closes markdown tab, fills entire editor area
 - Toggle button on preview webview tab to return to markdown editor (`md2slide.closePreview`)
 - Logo & title overlay via YAML frontmatter (`logo`, `logoPosition`, `title`)
