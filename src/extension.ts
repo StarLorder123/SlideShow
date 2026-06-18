@@ -20,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.StatusBarAlignment.Right,
     100
   );
-  statusBar.text = "$(screen-full) Preview Slides";
+  statusBar.text = "$(eye) Preview Slides";
   statusBar.command = "md2slide.showPreview";
   statusBar.tooltip = "Open Markdown Slide Preview";
   context.subscriptions.push(statusBar);
@@ -66,6 +66,25 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       PreviewPanel.getInstance().showPreview(editor.document);
+    }
+  );
+
+  // Register the show-preview-split command
+  const showPreviewSplitCmd = vscode.commands.registerCommand(
+    "md2slide.showPreviewSplit",
+    async (uri?: vscode.Uri) => {
+      if (uri) {
+        const doc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(doc);
+        PreviewPanel.getInstance().showPreview(doc, "split");
+        return;
+      }
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage("No active editor found.");
+        return;
+      }
+      PreviewPanel.getInstance().showPreview(editor.document, "split");
     }
   );
 
@@ -129,6 +148,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     showPreviewCmd,
+    showPreviewSplitCmd,
     closePreviewCmd,
     exportHtmlCmd,
     toggleOverviewCmd,

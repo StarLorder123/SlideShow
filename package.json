@@ -21,7 +21,12 @@
       {
         "command": "md2slide.showPreview",
         "title": "MD2Slide: Open Presentation Preview",
-        "icon": "$(screen-full)"
+        "icon": "$(eye)"
+      },
+      {
+        "command": "md2slide.showPreviewSplit",
+        "title": "MD2Slide: Open Split Preview",
+        "icon": "$(split-horizontal)"
       },
       {
         "command": "md2slide.closePreview",
@@ -55,6 +60,11 @@
           "group": "navigation"
         },
         {
+          "command": "md2slide.showPreviewSplit",
+          "when": "editorLangId == markdown && resourceExtname == .md && !md2slide.previewActive",
+          "group": "navigation"
+        },
+        {
           "command": "md2slide.closePreview",
           "when": "activeWebviewPanelId == md2slide.preview",
           "group": "navigation"
@@ -72,6 +82,11 @@
           "command": "md2slide.showPreview",
           "when": "resourceExtname == .md",
           "group": "1_md2slide@1"
+        },
+        {
+          "command": "md2slide.showPreviewSplit",
+          "when": "resourceExtname == .md",
+          "group": "1_md2slide@2"
         }
       ],
       "view/title": [

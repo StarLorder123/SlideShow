@@ -69,6 +69,8 @@ export class SlideTemplate {
     </div>
     <script src="${SlideTemplate.CDN_BASE}/reveal.js"></script>
     <script>
+        var lastUpdateVersion = 0;
+
         Reveal.initialize({
             controls: true,
             progress: true,
@@ -114,6 +116,11 @@ export class SlideTemplate {
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'update') {
+                // Ignore stale updates that arrive out of order
+                if (message.version !== undefined && message.version <= lastUpdateVersion) {
+                    return;
+                }
+                lastUpdateVersion = message.version;
                 document.querySelector('.slides').innerHTML = message.htmlContent;
                 Reveal.sync();
                 // Re-trigger title update after partial content refresh

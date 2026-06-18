@@ -23,6 +23,12 @@ export class PreviewPanel {
   private lastMetadata: SlideMetadata | null = null;
   private lastHasPerSlideTitles: boolean = false;
   private lastDocumentUri: vscode.Uri | null = null;
+  /** Monotonic counter to reject stale async updates. */
+  private updateVersion = 0;
+  /** Whether an updateWebview call is currently in flight. */
+  private isUpdating = false;
+  /** The current preview mode — controls close behavior. */
+  private currentMode: "fullscreen" | "split" = "fullscreen";
 
   private constructor() {}
 
@@ -46,10 +52,15 @@ export class PreviewPanel {
   /**
    * Show the preview panel for the given document.
    */
-  showPreview(document: vscode.TextDocument): void {
+  showPreview(
+    document: vscode.TextDocument,
+    mode: "fullscreen" | "split" = "fullscreen"
+  ): void {
     if (document.languageId !== "markdown") {
       return;
     }
+
+    this.currentMode = mode;
 
     // Track the document for restoration on close
     this.lastDocumentUri = document.uri;
@@ -61,13 +72,16 @@ export class PreviewPanel {
       true
     );
 
+    const viewColumn =
+      mode === "split" ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active;
+
     if (this.panel) {
-      this.panel.reveal(vscode.ViewColumn.Active);
+      this.panel.reveal(viewColumn);
     } else {
       this.panel = vscode.window.createWebviewPanel(
         "md2slide.preview",
         `Preview: ${document.fileName.split(/[\\/]/).pop() ?? "Slide"}`,
-        vscode.ViewColumn.Active,
+        viewColumn,
         {
           enableScripts: true,
           retainContextWhenHidden: true,
@@ -83,11 +97,11 @@ export class PreviewPanel {
       );
     }
 
-    // Close the markdown editor tab so the preview fills the area
-    this.closeMarkdownTab(document.uri);
-
-    // Maximize the editor group to fill the entire editor area
-    vscode.commands.executeCommand('workbench.action.maximizeEditor');
+    // Fullscreen mode: close md tab and maximize editor
+    if (mode === "fullscreen") {
+      this.closeMarkdownTab(document.uri);
+      vscode.commands.executeCommand("workbench.action.maximizeEditor");
+    }
 
     this.render(document);
     this.registerHotReload(document);
@@ -118,17 +132,17 @@ export class PreviewPanel {
    * Close the preview panel and restore the markdown editor.
    */
   async closePreview(): Promise<void> {
-    // Restore the original markdown document if we have its URI
-    if (this.lastDocumentUri) {
-      try {
-        await vscode.window.showTextDocument(this.lastDocumentUri);
-      } catch {
-        // Document may have been deleted; ignore
+    // Fullscreen mode: restore markdown editor and un-maximize
+    if (this.currentMode === "fullscreen") {
+      if (this.lastDocumentUri) {
+        try {
+          await vscode.window.showTextDocument(this.lastDocumentUri);
+        } catch {
+          // Document may have been deleted; ignore
+        }
       }
+      vscode.commands.executeCommand("workbench.action.evenEditorWidths");
     }
-
-    // Un-maximize the editor to restore normal layout
-    vscode.commands.executeCommand('workbench.action.evenEditorWidths');
 
     // Dispose the webview panel (this also calls this.dispose())
     this.dispose();
@@ -291,10 +305,16 @@ export class PreviewPanel {
 
   /**
    * Debounce the re-render to avoid excessive updates on fast typing.
+   * If an update is already in flight, skip scheduling — the latest document
+   * state will be picked up by the next edit event after the current update
+   * completes, or by the postMessage version guard.
    */
   private scheduleRender(document: vscode.TextDocument): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
+    }
+    if (this.isUpdating) {
+      return;
     }
     this.debounceTimer = setTimeout(() => {
       this.updateWebview(document);
@@ -304,6 +324,7 @@ export class PreviewPanel {
   /**
    * Post a message to the existing webview to update slides without full reload.
    * If metadata changed, falls back to a full render.
+   * Uses a monotonic version counter to reject stale updates caused by async races.
    */
   private async updateWebview(
     document: vscode.TextDocument
@@ -312,75 +333,98 @@ export class PreviewPanel {
       return;
     }
 
-    const text = document.getText();
-    const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
+    // Capture version and mark in-flight so scheduleRender skips piling up
+    const version = ++this.updateVersion;
+    this.isUpdating = true;
 
-    const config = vscode.workspace.getConfiguration("md2slide");
-    const metadata: SlideMetadata = {
-      logo:
-        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
-      logoPosition:
-        frontMatterMeta.logoPosition ??
-        (config.get<string>(
-          "logoPosition"
-        ) as SlideMetadata["logoPosition"]) ??
-        undefined,
-      title:
-        (frontMatterMeta.title ??
-          config.get<string>("presentationTitle")) ||
-        undefined,
-    };
+    try {
+      const text = document.getText();
+      const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
 
-    // Check if per-slide title presence changed
-    const slides = parseSlides(body);
-    const hasPerSlideTitles = slides.some(
-      (s) => s.slideOverlay !== undefined
-    );
+      const config = vscode.workspace.getConfiguration("md2slide");
+      const metadata: SlideMetadata = {
+        logo:
+          (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
+        logoPosition:
+          frontMatterMeta.logoPosition ??
+          (config.get<string>(
+            "logoPosition"
+          ) as SlideMetadata["logoPosition"]) ??
+          undefined,
+        title:
+          (frontMatterMeta.title ??
+            config.get<string>("presentationTitle")) ||
+          undefined,
+      };
 
-    // If metadata changed OR per-slide title presence changed, full render
-    if (
-      !this.metadataEqual(this.lastMetadata, metadata) ||
-      this.lastHasPerSlideTitles !== hasPerSlideTitles
-    ) {
-      this.lastHasPerSlideTitles = hasPerSlideTitles;
-      await this.render(document);
-      return;
+      // Check if per-slide title presence changed
+      const slides = parseSlides(body);
+      const hasPerSlideTitles = slides.some(
+        (s) => s.slideOverlay !== undefined
+      );
+
+      // If metadata changed OR per-slide title presence changed, full render
+      if (
+        !this.metadataEqual(this.lastMetadata, metadata) ||
+        this.lastHasPerSlideTitles !== hasPerSlideTitles
+      ) {
+        this.lastHasPerSlideTitles = hasPerSlideTitles;
+        await this.render(document);
+        return;
+      }
+
+      // --- async work below — check version before posting ---
+
+      // Metadata unchanged — partial update with per-slide overlays & backgrounds injected
+      const globalBackground: SlideBackground = {};
+      if (metadata.backgroundColor) globalBackground.color = metadata.backgroundColor;
+      if (metadata.backgroundSize) globalBackground.size = metadata.backgroundSize;
+      if (metadata.backgroundPosition) globalBackground.position = metadata.backgroundPosition;
+      if (metadata.backgroundRepeat) globalBackground.repeat = metadata.backgroundRepeat;
+      if (metadata.backgroundOpacity !== undefined) globalBackground.opacity = metadata.backgroundOpacity;
+      // Resolve global background image for webview
+      const resolvedBgImage = await this.resolveBackgroundImage(
+        metadata.backgroundImage, document, false
+      );
+
+      // Stale check: if a newer update started while we awaited, discard this one
+      if (this.updateVersion !== version) {
+        return;
+      }
+
+      if (resolvedBgImage) globalBackground.image = resolvedBgImage;
+
+      const resolveImageUrl = (rawPath: string): string | undefined => {
+        if (/^https?:\/\//i.test(rawPath)) return rawPath;
+        if (!this.panel) return undefined;
+        const docDir = path.dirname(document.uri.fsPath);
+        try {
+          return this.panel.webview
+            .asWebviewUri(vscode.Uri.file(path.resolve(docDir, rawPath)))
+            .toString();
+        } catch { return undefined; }
+      };
+
+      const htmlContent = compileMarkdown(body, {
+        globalTitle: metadata.title,
+        globalPosition: metadata.logoPosition,
+        globalBackground,
+        resolveImageUrl,
+      });
+
+      // Final stale check before posting
+      if (this.updateVersion !== version) {
+        return;
+      }
+
+      this.panel.webview.postMessage({
+        command: "update",
+        htmlContent,
+        version,
+      });
+    } finally {
+      this.isUpdating = false;
     }
-
-    // Metadata unchanged — partial update with per-slide overlays & backgrounds injected
-    const globalBackground: SlideBackground = {};
-    if (metadata.backgroundColor) globalBackground.color = metadata.backgroundColor;
-    if (metadata.backgroundSize) globalBackground.size = metadata.backgroundSize;
-    if (metadata.backgroundPosition) globalBackground.position = metadata.backgroundPosition;
-    if (metadata.backgroundRepeat) globalBackground.repeat = metadata.backgroundRepeat;
-    if (metadata.backgroundOpacity !== undefined) globalBackground.opacity = metadata.backgroundOpacity;
-    // Resolve global background image for webview
-    const resolvedBgImage = await this.resolveBackgroundImage(
-      metadata.backgroundImage, document, false
-    );
-    if (resolvedBgImage) globalBackground.image = resolvedBgImage;
-
-    const resolveImageUrl = (rawPath: string): string | undefined => {
-      if (/^https?:\/\//i.test(rawPath)) return rawPath;
-      if (!this.panel) return undefined;
-      const docDir = path.dirname(document.uri.fsPath);
-      try {
-        return this.panel.webview
-          .asWebviewUri(vscode.Uri.file(path.resolve(docDir, rawPath)))
-          .toString();
-      } catch { return undefined; }
-    };
-
-    const htmlContent = compileMarkdown(body, {
-      globalTitle: metadata.title,
-      globalPosition: metadata.logoPosition,
-      globalBackground,
-      resolveImageUrl,
-    });
-    this.panel.webview.postMessage({
-      command: "update",
-      htmlContent,
-    });
   }
 
   /**
