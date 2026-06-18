@@ -26,6 +26,7 @@
 
 ### Fixed
 
+- Git-commit skill: replace PowerShell here-string syntax with POSIX-compatible `-m` flags for multi-line commit messages
 - Unused `parseSlides` import removed from `previewManager.ts`
 - `@types/node` type resolution on Node.js v24
 

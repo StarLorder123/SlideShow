@@ -20,7 +20,7 @@ Generate and execute a git commit based on the current working tree state.
    - `refactor` → `### Changed`
    - `docs` → `### Documentation`
    - `chore` / `style` / `test` / `perf` → keep under `[Unreleased]` as a plain bullet.
-5. **Stage and commit** — Run `git add -A && git commit -m "<msg>"`.
+5. **Stage and commit** — Run `git add -A && git commit -m "<subject>" -m "<body>"`. For multi-line bodies, chain additional `-m` flags (one per paragraph). Never use `@'...'@` or `@"..."@` here-strings — the Bash tool uses POSIX sh, not PowerShell.
 6. **Report** — Show the commit hash and summary.
 
 ## Rules
