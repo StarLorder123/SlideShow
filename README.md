@@ -74,6 +74,12 @@ title: My Presentation
 | `md2slide.logo` | `string` | `""` | Default logo path or URL |
 | `md2slide.logoPosition` | `string` | `top-right` | `top-left` or `top-right` |
 | `md2slide.presentationTitle` | `string` | `""` | Default presentation title |
+| `md2slide.backgroundColor` | `string` | `""` | Default background color for all slides (CSS color value) |
+| `md2slide.backgroundImage` | `string` | `""` | Default background image URL or local path |
+| `md2slide.backgroundSize` | `string` | `cover` | Background size (`cover`, `contain`, `auto`, etc.) |
+| `md2slide.backgroundPosition` | `string` | `center` | Background position (CSS value) |
+| `md2slide.backgroundRepeat` | `string` | `no-repeat` | Background repeat mode |
+| `md2slide.backgroundOpacity` | `number` | `1.0` | Background opacity (0.0 to 1.0) |
 
 ## Development
 
@@ -91,3 +97,7 @@ Press **F5** in VS Code to launch the Extension Development Host.
 - [markdown-it](https://github.com/markdown-it/markdown-it) — Markdown parser
 - [js-yaml](https://github.com/nodeca/js-yaml) — YAML frontmatter parser
 - TypeScript + esbuild
+
+## License
+
+[MIT](LICENSE)

@@ -7,8 +7,13 @@
     "vscode": "^1.75.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -203,8 +208,25 @@
     "npm-run-all": "^4.1.5",
     "typescript": "^5.5.4"
   },
-  "keywords": [],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StarLorder123/SlideShow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/StarLorder123/SlideShow/issues"
+  },
+  "homepage": "https://github.com/StarLorder123/SlideShow#readme",
+  "keywords": [
+    "markdown",
+    "slides",
+    "presentation",
+    "revealjs",
+    "preview",
+    "html",
+    "export"
+  ],
+  "author": "StarLorder123",
+  "publisher": "StarLorder123",
   "license": "MIT",
   "type": "commonjs"
 }
