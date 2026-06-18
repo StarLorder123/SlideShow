@@ -88,6 +88,25 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Register the show-preview-window command
+  const showPreviewWindowCmd = vscode.commands.registerCommand(
+    "md2slide.showPreviewWindow",
+    async (uri?: vscode.Uri) => {
+      if (uri) {
+        const doc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(doc);
+        PreviewPanel.getInstance().showPreview(doc, "window");
+        return;
+      }
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage("No active editor found.");
+        return;
+      }
+      PreviewPanel.getInstance().showPreview(editor.document, "window");
+    }
+  );
+
   // Register the close-preview command
   const closePreviewCmd = vscode.commands.registerCommand(
     "md2slide.closePreview",
@@ -149,6 +168,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     showPreviewCmd,
     showPreviewSplitCmd,
+    showPreviewWindowCmd,
     closePreviewCmd,
     exportHtmlCmd,
     toggleOverviewCmd,

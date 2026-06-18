@@ -28,7 +28,7 @@ export class PreviewPanel {
   /** Whether an updateWebview call is currently in flight. */
   private isUpdating = false;
   /** The current preview mode — controls close behavior. */
-  private currentMode: "fullscreen" | "split" = "fullscreen";
+  private currentMode: "fullscreen" | "split" | "window" = "fullscreen";
 
   private constructor() {}
 
@@ -54,7 +54,7 @@ export class PreviewPanel {
    */
   showPreview(
     document: vscode.TextDocument,
-    mode: "fullscreen" | "split" = "fullscreen"
+    mode: "fullscreen" | "split" | "window" = "fullscreen"
   ): void {
     if (document.languageId !== "markdown") {
       return;
@@ -103,6 +103,16 @@ export class PreviewPanel {
       vscode.commands.executeCommand("workbench.action.maximizeEditor");
     }
 
+    // Window mode: detach the webview into its own native window
+    if (mode === "window") {
+      // Defer to let the webview tab finish rendering, then move to new window
+      setTimeout(() => {
+        vscode.commands.executeCommand(
+          "workbench.action.moveEditorToNewWindow"
+        );
+      }, 100);
+    }
+
     this.render(document);
     this.registerHotReload(document);
   }
@@ -133,6 +143,7 @@ export class PreviewPanel {
    */
   async closePreview(): Promise<void> {
     // Fullscreen mode: restore markdown editor and un-maximize
+    // (split and window modes keep the markdown editor open)
     if (this.currentMode === "fullscreen") {
       if (this.lastDocumentUri) {
         try {
