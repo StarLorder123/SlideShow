@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- CLAUDE.md updated: corrected display name to SlideShow, documented flat source structure, all 8 commands, per-slide title/background HTML comment syntax, preview modes, context key behavior, and CJS output constraint
+
 ### Added
 
 - **Split-view preview mode**: `$(split-horizontal)` toolbar button opens preview beside the markdown editor, keeping both visible side by side (`md2slide.showPreviewSplit` command)
