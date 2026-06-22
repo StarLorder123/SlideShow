@@ -8,6 +8,8 @@
 
 ### Added
 
+- Extension icon (`asserts/icon.png`) shown in VS Code marketplace and extension details view
+
 - **Split-view preview mode**: `$(split-horizontal)` toolbar button opens preview beside the markdown editor, keeping both visible side by side (`md2slide.showPreviewSplit` command)
 - **New-window preview mode**: `$(empty-window)` toolbar button detaches the preview into its own native window (`md2slide.showPreviewWindow` command)
 - Fullscreen icon changed from `$(screen-full)` to `$(eye)` across command, toolbar, and status bar

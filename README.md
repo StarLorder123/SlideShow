@@ -1,4 +1,8 @@
-﻿# MD2Slide
+﻿# SlideShow
+
+<p align="center">
+  <img src="asserts/icon.png" alt="SlideShow" width="128" />
+</p>
 
 > Live-preview and export Markdown as stunning web-based slides. Built for developers who prefer code over PowerPoint.
 
