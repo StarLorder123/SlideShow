@@ -1,10 +1,4 @@
-﻿# SlideShow
-
-<p align="center">
-  <img src="asserts/icon.png" alt="SlideShow" width="128" />
-</p>
-
-> Live-preview and export Markdown as stunning web-based slides. Built for developers who prefer code over PowerPoint.
+﻿> Live-preview and export Markdown as stunning web-based slides. Built for developers who prefer code over PowerPoint.
 
 A VS Code extension that transforms Markdown files into [Reveal.js](https://revealjs.com/) presentations with hot-reload preview and standalone HTML export.
 
@@ -51,11 +45,11 @@ title: My Presentation
 ---
 ```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `logo` | Image URL or local path | (none) |
+| Field          | Description               | Default     |
+| -------------- | ------------------------- | ----------- |
+| `logo`         | Image URL or local path   | (none)      |
 | `logoPosition` | `top-left` or `top-right` | `top-right` |
-| `title` | Presentation title text | (none) |
+| `title`        | Presentation title text   | (none)      |
 
 **Local paths** are resolved relative to the `.md` file. On export, images are embedded as base64 — the output HTML is fully self-contained.
 
@@ -63,27 +57,27 @@ title: My Presentation
 
 ## Commands
 
-| Command | Keybinding |
-|---------|------------|
+| Command                               | Keybinding     |
+| ------------------------------------- | -------------- |
 | `MD2Slide: Open Presentation Preview` | `Ctrl+Shift+M` |
-| `MD2Slide: Export to Standalone HTML` | — |
-| `MD2Slide: Toggle Slide Overview` | `Ctrl+Shift+O` |
-| `MD2Slide: Refresh Outline` | — |
+| `MD2Slide: Export to Standalone HTML` | —              |
+| `MD2Slide: Toggle Slide Overview`     | `Ctrl+Shift+O` |
+| `MD2Slide: Refresh Outline`           | —              |
 
 ## Configuration
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `md2slide.theme` | `string` | `black` | Reveal.js theme: `black`, `white`, `league`, `beige`, `night`, `serif`, `simple` |
-| `md2slide.logo` | `string` | `""` | Default logo path or URL |
-| `md2slide.logoPosition` | `string` | `top-right` | `top-left` or `top-right` |
-| `md2slide.presentationTitle` | `string` | `""` | Default presentation title |
-| `md2slide.backgroundColor` | `string` | `""` | Default background color for all slides (CSS color value) |
-| `md2slide.backgroundImage` | `string` | `""` | Default background image URL or local path |
-| `md2slide.backgroundSize` | `string` | `cover` | Background size (`cover`, `contain`, `auto`, etc.) |
-| `md2slide.backgroundPosition` | `string` | `center` | Background position (CSS value) |
-| `md2slide.backgroundRepeat` | `string` | `no-repeat` | Background repeat mode |
-| `md2slide.backgroundOpacity` | `number` | `1.0` | Background opacity (0.0 to 1.0) |
+| Setting                       | Type     | Default     | Description                                                                      |
+| ----------------------------- | -------- | ----------- | -------------------------------------------------------------------------------- |
+| `md2slide.theme`              | `string` | `black`     | Reveal.js theme: `black`, `white`, `league`, `beige`, `night`, `serif`, `simple` |
+| `md2slide.logo`               | `string` | `""`        | Default logo path or URL                                                         |
+| `md2slide.logoPosition`       | `string` | `top-right` | `top-left` or `top-right`                                                        |
+| `md2slide.presentationTitle`  | `string` | `""`        | Default presentation title                                                       |
+| `md2slide.backgroundColor`    | `string` | `""`        | Default background color for all slides (CSS color value)                        |
+| `md2slide.backgroundImage`    | `string` | `""`        | Default background image URL or local path                                       |
+| `md2slide.backgroundSize`     | `string` | `cover`     | Background size (`cover`, `contain`, `auto`, etc.)                               |
+| `md2slide.backgroundPosition` | `string` | `center`    | Background position (CSS value)                                                  |
+| `md2slide.backgroundRepeat`   | `string` | `no-repeat` | Background repeat mode                                                           |
+| `md2slide.backgroundOpacity`  | `number` | `1.0`       | Background opacity (0.0 to 1.0)                                                  |
 
 ## Development
 

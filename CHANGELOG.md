@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `@types/vscode` downgraded from `^1.94.0` to `^1.75.0` to match `engines.vscode`, resolving vsce packaging error
+
 ### Documentation
 
 - CLAUDE.md updated: corrected display name to SlideShow, documented flat source structure, all 8 commands, per-slide title/background HTML comment syntax, preview modes, context key behavior, and CJS output constraint
