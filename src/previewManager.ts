@@ -4,11 +4,43 @@ import {
   compileMarkdown,
   extractFrontmatter,
   parseSlides,
-  SlideBackground,
-  SlideMetadata,
-} from "./compiler/mdCompiler";
-import { SlideTemplate } from "./template/slideTemplate";
+} from "./mdCompiler";
+import { SlideTemplate } from "./slideTemplate";
 import { OutlineProvider } from "./outlineProvider";
+import { SlideBackground, SlideMetadata } from "./types";
+import { resolveMetadata } from "./metadataResolver";
+import { resolveLocalImage } from "./imageResolver";
+
+/**
+ * Build a SlideBackground from resolved metadata (only truthy fields).
+ */
+function buildGlobalBackground(metadata: SlideMetadata): SlideBackground {
+  const bg: SlideBackground = {};
+  if (metadata.backgroundColor) bg.color = metadata.backgroundColor;
+  if (metadata.backgroundSize) bg.size = metadata.backgroundSize;
+  if (metadata.backgroundPosition) bg.position = metadata.backgroundPosition;
+  if (metadata.backgroundRepeat) bg.repeat = metadata.backgroundRepeat;
+  if (metadata.backgroundOpacity !== undefined) bg.opacity = metadata.backgroundOpacity;
+  return bg;
+}
+
+/**
+ * Compare two metadata objects for equality.
+ */
+function metadataEqual(a: SlideMetadata | null, b: SlideMetadata): boolean {
+  if (!a) return false;
+  return (
+    a.logo === b.logo &&
+    a.logoPosition === b.logoPosition &&
+    a.title === b.title &&
+    a.backgroundColor === b.backgroundColor &&
+    a.backgroundImage === b.backgroundImage &&
+    a.backgroundSize === b.backgroundSize &&
+    a.backgroundPosition === b.backgroundPosition &&
+    a.backgroundRepeat === b.backgroundRepeat &&
+    a.backgroundOpacity === b.backgroundOpacity
+  );
+}
 
 /**
  * Singleton that manages the lifecycle of the preview Webview panel.
@@ -169,52 +201,15 @@ export class PreviewPanel {
 
     const text = document.getText();
     const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
-
-    // Resolve metadata with priority: frontmatter > VS Code settings
     const config = vscode.workspace.getConfiguration("md2slide");
-    const metadata: SlideMetadata = {
-      logo:
-        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
-      logoPosition:
-        frontMatterMeta.logoPosition ??
-        (config.get<string>("logoPosition") as SlideMetadata["logoPosition"]) ??
-        undefined,
-      title:
-        (frontMatterMeta.title ??
-          config.get<string>("presentationTitle")) ||
-        undefined,
-      // Background fields: frontmatter > VS Code settings
-      backgroundColor:
-        (frontMatterMeta.backgroundColor ??
-        config.get<string>("backgroundColor")) ||
-        undefined,
-      backgroundImage:
-        (frontMatterMeta.backgroundImage ??
-        config.get<string>("backgroundImage")) ||
-        undefined,
-      backgroundSize:
-        (frontMatterMeta.backgroundSize ??
-        config.get<string>("backgroundSize")) ||
-        undefined,
-      backgroundPosition:
-        (frontMatterMeta.backgroundPosition ??
-        config.get<string>("backgroundPosition")) ||
-        undefined,
-      backgroundRepeat:
-        (frontMatterMeta.backgroundRepeat ??
-        config.get<string>("backgroundRepeat")) ||
-        undefined,
-      backgroundOpacity:
-        (frontMatterMeta.backgroundOpacity ??
-        config.get<number>("backgroundOpacity")) ||
-        undefined,
-    };
+    const metadata = resolveMetadata(frontMatterMeta, config);
 
     // Resolve logo URL for webview context
-    const logoUrl = await this.resolveLogoUrl(
+    const logoUrl = await resolveLocalImage(
       metadata.logo,
       document,
-      false
+      false,
+      this.panel.webview
     );
 
     // Check if any slide has per-slide titles
@@ -225,18 +220,14 @@ export class PreviewPanel {
     this.lastHasPerSlideTitles = hasPerSlideTitles;
 
     // Build global background from resolved metadata
-    const globalBackground: SlideBackground = {};
-    if (metadata.backgroundColor) globalBackground.color = metadata.backgroundColor;
-    if (metadata.backgroundSize) globalBackground.size = metadata.backgroundSize;
-    if (metadata.backgroundPosition) globalBackground.position = metadata.backgroundPosition;
-    if (metadata.backgroundRepeat) globalBackground.repeat = metadata.backgroundRepeat;
-    if (metadata.backgroundOpacity !== undefined) globalBackground.opacity = metadata.backgroundOpacity;
+    const globalBackground = buildGlobalBackground(metadata);
 
-    // Resolve global background image (same logic as logo)
-    const resolvedBgImage = await this.resolveBackgroundImage(
+    // Resolve global background image
+    const resolvedBgImage = await resolveLocalImage(
       metadata.backgroundImage,
       document,
-      false
+      false,
+      this.panel.webview
     );
     if (resolvedBgImage) globalBackground.image = resolvedBgImage;
 
@@ -351,22 +342,8 @@ export class PreviewPanel {
     try {
       const text = document.getText();
       const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
-
       const config = vscode.workspace.getConfiguration("md2slide");
-      const metadata: SlideMetadata = {
-        logo:
-          (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
-        logoPosition:
-          frontMatterMeta.logoPosition ??
-          (config.get<string>(
-            "logoPosition"
-          ) as SlideMetadata["logoPosition"]) ??
-          undefined,
-        title:
-          (frontMatterMeta.title ??
-            config.get<string>("presentationTitle")) ||
-          undefined,
-      };
+      const metadata = resolveMetadata(frontMatterMeta, config);
 
       // Check if per-slide title presence changed
       const slides = parseSlides(body);
@@ -376,7 +353,7 @@ export class PreviewPanel {
 
       // If metadata changed OR per-slide title presence changed, full render
       if (
-        !this.metadataEqual(this.lastMetadata, metadata) ||
+        !metadataEqual(this.lastMetadata, metadata) ||
         this.lastHasPerSlideTitles !== hasPerSlideTitles
       ) {
         this.lastHasPerSlideTitles = hasPerSlideTitles;
@@ -387,15 +364,13 @@ export class PreviewPanel {
       // --- async work below — check version before posting ---
 
       // Metadata unchanged — partial update with per-slide overlays & backgrounds injected
-      const globalBackground: SlideBackground = {};
-      if (metadata.backgroundColor) globalBackground.color = metadata.backgroundColor;
-      if (metadata.backgroundSize) globalBackground.size = metadata.backgroundSize;
-      if (metadata.backgroundPosition) globalBackground.position = metadata.backgroundPosition;
-      if (metadata.backgroundRepeat) globalBackground.repeat = metadata.backgroundRepeat;
-      if (metadata.backgroundOpacity !== undefined) globalBackground.opacity = metadata.backgroundOpacity;
-      // Resolve global background image for webview
-      const resolvedBgImage = await this.resolveBackgroundImage(
-        metadata.backgroundImage, document, false
+      const globalBackground = buildGlobalBackground(metadata);
+
+      const resolvedBgImage = await resolveLocalImage(
+        metadata.backgroundImage,
+        document,
+        false,
+        this.panel.webview
       );
 
       // Stale check: if a newer update started while we awaited, discard this one
@@ -444,85 +419,26 @@ export class PreviewPanel {
   async exportHtml(document: vscode.TextDocument): Promise<void> {
     const text = document.getText();
     const { metadata: frontMatterMeta, body } = extractFrontmatter(text);
-
     const config = vscode.workspace.getConfiguration("md2slide");
-    const metadata: SlideMetadata = {
-      logo:
-        (frontMatterMeta.logo ?? config.get<string>("logo")) || undefined,
-      logoPosition:
-        frontMatterMeta.logoPosition ??
-        (config.get<string>("logoPosition") as SlideMetadata["logoPosition"]) ??
-        undefined,
-      title:
-        (frontMatterMeta.title ??
-          config.get<string>("presentationTitle")) ||
-        undefined,
-      // Background fields: frontmatter > VS Code settings
-      backgroundColor:
-        (frontMatterMeta.backgroundColor ??
-        config.get<string>("backgroundColor")) ||
-        undefined,
-      backgroundImage:
-        (frontMatterMeta.backgroundImage ??
-        config.get<string>("backgroundImage")) ||
-        undefined,
-      backgroundSize:
-        (frontMatterMeta.backgroundSize ??
-        config.get<string>("backgroundSize")) ||
-        undefined,
-      backgroundPosition:
-        (frontMatterMeta.backgroundPosition ??
-        config.get<string>("backgroundPosition")) ||
-        undefined,
-      backgroundRepeat:
-        (frontMatterMeta.backgroundRepeat ??
-        config.get<string>("backgroundRepeat")) ||
-        undefined,
-      backgroundOpacity:
-        (frontMatterMeta.backgroundOpacity ??
-        config.get<number>("backgroundOpacity")) ||
-        undefined,
-    };
+    const metadata = resolveMetadata(frontMatterMeta, config);
 
     // Resolve logo URL for export context (base64 data URI for local files)
-    const logoUrl = await this.resolveLogoUrl(
+    const logoUrl = await resolveLocalImage(
       metadata.logo,
       document,
       true
     );
 
     // Build global background for export
-    const globalBackground: SlideBackground = {};
-    if (metadata.backgroundColor) globalBackground.color = metadata.backgroundColor;
-    if (metadata.backgroundSize) globalBackground.size = metadata.backgroundSize;
-    if (metadata.backgroundPosition) globalBackground.position = metadata.backgroundPosition;
-    if (metadata.backgroundRepeat) globalBackground.repeat = metadata.backgroundRepeat;
-    if (metadata.backgroundOpacity !== undefined) globalBackground.opacity = metadata.backgroundOpacity;
+    const globalBackground = buildGlobalBackground(metadata);
+
     // Resolve global background image for export (base64 for local files)
-    const resolvedBgImage = await this.resolveBackgroundImage(
-      metadata.backgroundImage, document, true
+    const resolvedBgImage = await resolveLocalImage(
+      metadata.backgroundImage,
+      document,
+      true
     );
     if (resolvedBgImage) globalBackground.image = resolvedBgImage;
-
-    // Per-slide local images: resolve to base64 for self-contained export
-    const resolveImageUrlForExport = async (rawPath: string): Promise<string | undefined> => {
-      if (/^https?:\/\//i.test(rawPath)) return rawPath;
-      // Resolve & embed as base64
-      const docDir = path.dirname(document.uri.fsPath);
-      const resolvedPath = path.resolve(docDir, rawPath);
-      try {
-        const uri = vscode.Uri.file(resolvedPath);
-        const data = await vscode.workspace.fs.readFile(uri);
-        const ext = path.extname(resolvedPath).toLowerCase();
-        const mimeMap: Record<string, string> = {
-          ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-          ".gif": "image/gif", ".svg": "image/svg+xml", ".webp": "image/webp",
-        };
-        const mimeType = mimeMap[ext] || "image/png";
-        const base64 = Buffer.from(data).toString("base64");
-        return `data:${mimeType};base64,${base64}`;
-      } catch { return undefined; }
-    };
 
     // Pre-resolve per-slide background images for export (path → base64)
     const allSlides = parseSlides(body);
@@ -530,7 +446,7 @@ export class PreviewPanel {
     for (const slide of allSlides) {
       const img = slide.slideBackground?.image;
       if (img && !resolvedImageCache.has(img)) {
-        const resolved = await resolveImageUrlForExport(img);
+        const resolved = await resolveLocalImage(img, document, true);
         if (resolved) resolvedImageCache.set(img, resolved);
       }
     }
@@ -568,101 +484,6 @@ export class PreviewPanel {
         "Slides exported successfully!"
       );
     }
-  }
-
-  /**
-   * Resolve the logo URL appropriate for the current context.
-   * - URLs (http/https) pass through unchanged
-   * - Local paths in webview: resolve via asWebviewUri
-   * - Local paths in export: read file and return base64 data URI
-   * Returns undefined if no logo or file missing.
-   */
-  private async resolveLogoUrl(
-    rawPath: string | undefined,
-    document: vscode.TextDocument,
-    forExport: boolean
-  ): Promise<string | undefined> {
-    if (!rawPath || rawPath.trim().length === 0) {
-      return undefined;
-    }
-
-    // URL detection: starts with http:// or https://
-    if (/^https?:\/\//i.test(rawPath)) {
-      return rawPath;
-    }
-
-    // Local path: resolve relative to the markdown file's directory
-    const docDir = path.dirname(document.uri.fsPath);
-    const resolvedPath = path.resolve(docDir, rawPath);
-
-    if (forExport) {
-      // Read file and embed as base64 data URI
-      try {
-        const uri = vscode.Uri.file(resolvedPath);
-        const data = await vscode.workspace.fs.readFile(uri);
-        const ext = path.extname(resolvedPath).toLowerCase();
-        const mimeType =
-          ext === ".png"
-            ? "image/png"
-            : ext === ".jpg" || ext === ".jpeg"
-              ? "image/jpeg"
-              : ext === ".gif"
-                ? "image/gif"
-                : ext === ".svg"
-                  ? "image/svg+xml"
-                  : ext === ".webp"
-                    ? "image/webp"
-                    : "image/png";
-        const base64 = Buffer.from(data).toString("base64");
-        return `data:${mimeType};base64,${base64}`;
-      } catch {
-        console.warn(
-          `MD2Slide: Logo file not found: ${resolvedPath}`
-        );
-        return undefined;
-      }
-    } else {
-      // Webview: convert to webview URI scheme
-      if (!this.panel) {
-        return undefined;
-      }
-      const uri = vscode.Uri.file(resolvedPath);
-      return this.panel.webview.asWebviewUri(uri).toString();
-    }
-  }
-
-  /**
-   * Resolve background image path (same logic as resolveLogoUrl).
-   */
-  private async resolveBackgroundImage(
-    rawPath: string | undefined,
-    document: vscode.TextDocument,
-    forExport: boolean
-  ): Promise<string | undefined> {
-    return this.resolveLogoUrl(rawPath, document, forExport);
-  }
-
-  /**
-   * Compare two metadata objects for equality.
-   */
-  private metadataEqual(
-    a: SlideMetadata | null,
-    b: SlideMetadata
-  ): boolean {
-    if (!a) {
-      return false;
-    }
-    return (
-      a.logo === b.logo &&
-      a.logoPosition === b.logoPosition &&
-      a.title === b.title &&
-      a.backgroundColor === b.backgroundColor &&
-      a.backgroundImage === b.backgroundImage &&
-      a.backgroundSize === b.backgroundSize &&
-      a.backgroundPosition === b.backgroundPosition &&
-      a.backgroundRepeat === b.backgroundRepeat &&
-      a.backgroundOpacity === b.backgroundOpacity
-    );
   }
 
   /**

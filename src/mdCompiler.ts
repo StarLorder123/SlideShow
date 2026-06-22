@@ -1,48 +1,7 @@
 import MarkdownIt from "markdown-it";
 import * as yaml from "js-yaml";
-
-export type CornerPosition =
-  | "top-left"
-  | "top-right"
-  | "bottom-left"
-  | "bottom-right";
-
-/** Per-slide or global background configuration. */
-export interface SlideBackground {
-  color?: string;
-  image?: string;
-  size?: string;
-  position?: string;
-  repeat?: string;
-  opacity?: number;
-}
-
-export interface SlideInfo {
-  index: number;
-  title: string;
-  startLine: number;
-  html: string;
-  /** Per-slide overlay title extracted from <!-- slide-title: ... --> comment. */
-  slideOverlay?: {
-    title: string;
-    position?: CornerPosition;
-  };
-  /** Per-slide background extracted from <!-- slide-bg: ... --> comment. */
-  slideBackground?: SlideBackground;
-}
-
-export interface SlideMetadata {
-  logo?: string;
-  logoPosition?: CornerPosition;
-  title?: string;
-  /** Global slide background. */
-  backgroundColor?: string;
-  backgroundImage?: string;
-  backgroundSize?: string;
-  backgroundPosition?: string;
-  backgroundRepeat?: string;
-  backgroundOpacity?: number;
-}
+import { CornerPosition, SlideBackground, SlideInfo, SlideMetadata } from "./types";
+import { escapeHtml, escapeAttr } from "./htmlEscape";
 
 /**
  * Extract YAML frontmatter from the beginning of markdown text.
@@ -121,22 +80,8 @@ export function extractFrontmatter(text: string): {
 const SLIDE_TITLE_RE =
   /<!--\s*slide-title:\s*(.+?)\s*(?:\|\s*(top-left|top-right|bottom-left|bottom-right))?\s*-->/;
 
-/** Escape a string for safe use in HTML text content. */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/** Escape a string for safe use in an HTML attribute value. */
-function escapeAttr(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+/** Regex to detect per-slide background: <!-- slide-bg: key=value | ... --> */
+const SLIDE_BG_RE = /<!--\s*slide-bg:\s*(.+?)\s*-->/;
 
 /** Build the overlay HTML element for a per-slide title. */
 function buildSlideOverlayHtml(
@@ -145,9 +90,6 @@ function buildSlideOverlayHtml(
 ): string {
   return `<div class="md2slide-slide-overlay md2slide-slide-overlay--${position}"><span class="md2slide-slide-title">${escapeHtml(title)}</span></div>`;
 }
-
-/** Regex to detect per-slide background: <!-- slide-bg: key=value | ... --> */
-const SLIDE_BG_RE = /<!--\s*slide-bg:\s*(.+?)\s*-->/;
 
 /**
  * Parse the inner content of <!-- slide-bg: ... --> into a SlideBackground.

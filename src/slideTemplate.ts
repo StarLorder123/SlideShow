@@ -1,9 +1,5 @@
-export interface SlideBuildOptions {
-  theme?: string;
-  logoUrl?: string;
-  logoPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-  title?: string;
-}
+import { SlideBuildOptions } from "./types";
+import { escapeHtml, escapeAttr } from "./htmlEscape";
 
 /**
  * Generates the full HTML template for a Reveal.js presentation.
@@ -151,29 +147,12 @@ export class SlideTemplate {
 
     let inner = "";
     if (hasLogo) {
-      inner += `<img class="md2slide-logo" src="${SlideTemplate.escapeAttr(options.logoUrl!)}" alt="logo" onerror="this.style.display='none'" />`;
+      inner += `<img class="md2slide-logo" src="${escapeAttr(options.logoUrl!)}" alt="logo" onerror="this.style.display='none'" />`;
     }
     if (hasTitle) {
-      inner += `<span class="md2slide-title">${SlideTemplate.escapeHtml(options.title!)}</span>`;
+      inner += `<span class="md2slide-title">${escapeHtml(options.title!)}</span>`;
     }
 
     return `<div class="md2slide-overlay ${posClass}">${inner}</div>`;
-  }
-
-  /** Escape a string for safe use in an HTML attribute value. */
-  private static escapeAttr(value: string): string {
-    return value
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-  }
-
-  /** Escape a string for safe use in HTML text content. */
-  private static escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
   }
 }

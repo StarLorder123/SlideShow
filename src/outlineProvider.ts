@@ -1,9 +1,6 @@
 import * as vscode from "vscode";
-import {
-  parseSlides,
-  SlideInfo,
-  extractFrontmatter,
-} from "./compiler/mdCompiler";
+import { parseSlides, extractFrontmatter } from "./mdCompiler";
+import { SlideInfo } from "./types";
 
 /**
  * TreeDataProvider that shows the slide outline in a sidebar view.

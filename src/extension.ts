@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "./previewManager";
-import { OutlineProvider, SlideNode } from "./outlineProvider";
+import { OutlineProvider } from "./outlineProvider";
 
 let statusBar: vscode.StatusBarItem;
 let outlineProvider: OutlineProvider;

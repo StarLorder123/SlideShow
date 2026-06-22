@@ -23,6 +23,8 @@
 
 ### Changed
 
+- **Source structure refactored**: flat layout with single-responsibility modules — extracted `types.ts`, `htmlEscape.ts`, `metadataResolver.ts`, `imageResolver.ts`; flattened `compiler/`, `template/` single-file folders into `src/` root
+- `previewManager.ts` slimmed from 692 to 512 lines by delegating metadata resolution, image handling, and HTML escaping to standalone modules
 - Hot-reload now skips scheduling when an update is already in-flight, preventing update pile-up during fast typing
 - Partial webview updates carry a monotonic version counter to reject stale async results arriving out of order
 - `SlideTemplate.build()` signature: second argument changed from `theme: string` to `options: SlideBuildOptions`
