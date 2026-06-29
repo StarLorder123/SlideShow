@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Package Manager
 
-This project uses **pnpm** for all package management. Never use npm.
+This project uses **npm** for all package management.
 
 ## Architecture
 
@@ -40,9 +40,9 @@ If frontmatter metadata changes (logo/title/position/background), the hot-reload
 
 | Command | Description |
 |---------|-------------|
-| `pnpm run compile` | Type-check + bundle via esbuild → `dist/extension.js` |
-| `pnpm run watch` | Run esbuild + tsc in watch mode (via `npm-run-all`) |
-| `pnpm run package` | Production build (minified, no sourcemaps) |
+| `npm run compile` | Type-check + bundle via esbuild → `dist/extension.js` |
+| `npm run watch` | Run esbuild + tsc in watch mode (via `npm-run-all`) |
+| `npm run package` | Production build (minified, no sourcemaps) |
 
 **Debugging:** Press F5 in VS Code to launch an Extension Development Host window with the extension loaded.
 
@@ -109,6 +109,6 @@ Per-slide values override global values for that slide only. Comments are stripp
 - `external: ['vscode']` in esbuild — the `vscode` module is provided by the extension host at runtime, never bundle it.
 - Reveal.js assets load from cdnjs CDN — exported HTML requires internet access for Reveal.js, but local images are base64-embedded.
 - The preview Webview uses `retainContextWhenHidden: true` to preserve Reveal.js state when the panel is hidden.
-- This project uses **pnpm**, not npm.
+- This project uses **npm**.
 - `type: "commonjs"` in package.json — all source files use ESM `import` syntax but esbuild bundles to CJS.
 - `activationEvents: []` — extension activates via command calls, not on startup.

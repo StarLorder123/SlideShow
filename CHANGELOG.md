@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Sidebar views not appearing due to empty `activationEvents` and restrictive `when` clauses on views
+- Slides Outline showing empty on activation (only loaded during preview)
+- Slides Outline clearing when focus moved to preview webview
 
 ## [0.1.0] - Initial release
 

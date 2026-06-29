@@ -15,6 +15,14 @@ function updateStatusBarVisibility(): void {
   }
 }
 
+function updateOutline(): void {
+  const editor = vscode.window.activeTextEditor;
+  if (editor && editor.document.languageId === "markdown" && outlineProvider) {
+    outlineProvider.setDocument(editor.document);
+    outlineProvider.refresh();
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   // Status bar button for markdown files
   statusBar = vscode.window.createStatusBarItem(
@@ -49,6 +57,24 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(outlineTreeView);
   PreviewPanel.getInstance().setOutlineProvider(outlineProvider);
+  updateOutline();
+
+  // Refresh outline when active editor changes
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      updateOutline();
+    })
+  );
+
+  // Refresh outline when the document changes (so slide titles stay in sync)
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && e.document === editor.document) {
+        updateOutline();
+      }
+    })
+  );
 
   // Quick Insert component tree view
   const componentProvider = new ComponentProvider();
