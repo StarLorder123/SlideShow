@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { PreviewPanel } from "./previewManager";
 import { OutlineProvider } from "./outlineProvider";
+import { ComponentProvider } from "./componentProvider";
 
 let statusBar: vscode.StatusBarItem;
 let outlineProvider: OutlineProvider;
@@ -48,6 +49,16 @@ export function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(outlineTreeView);
   PreviewPanel.getInstance().setOutlineProvider(outlineProvider);
+
+  // Quick Insert component tree view
+  const componentProvider = new ComponentProvider();
+  const componentTreeView = vscode.window.createTreeView(
+    "md2slideComponentList",
+    {
+      treeDataProvider: componentProvider,
+    }
+  );
+  context.subscriptions.push(componentTreeView);
 
   // Register the show-preview command
   const showPreviewCmd = vscode.commands.registerCommand(
@@ -165,6 +176,19 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // Register the insert-component command
+  const insertComponentCmd = vscode.commands.registerCommand(
+    "md2slide.insertComponent",
+    async (snippet: string) => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage("No active editor found.");
+        return;
+      }
+      await editor.insertSnippet(new vscode.SnippetString(snippet));
+    }
+  );
+
   context.subscriptions.push(
     showPreviewCmd,
     showPreviewSplitCmd,
@@ -173,7 +197,8 @@ export function activate(context: vscode.ExtensionContext) {
     exportHtmlCmd,
     toggleOverviewCmd,
     gotoSlideCmd,
-    refreshOutlineCmd
+    refreshOutlineCmd,
+    insertComponentCmd
   );
 }
 

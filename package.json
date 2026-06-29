@@ -15,7 +15,9 @@
     "color": "#1a1a2e",
     "theme": "dark"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -56,6 +58,11 @@
         "command": "md2slide.refreshOutline",
         "title": "MD2Slide: Refresh Outline",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "md2slide.insertComponent",
+        "title": "MD2Slide: Insert Component",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -139,9 +146,12 @@
     "views": {
       "md2slide": [
         {
+          "id": "md2slideComponentList",
+          "name": "Quick Insert"
+        },
+        {
           "id": "md2slideOutline",
-          "name": "Slides Outline",
-          "when": "md2slide.previewActive"
+          "name": "Slides Outline"
         }
       ]
     },
