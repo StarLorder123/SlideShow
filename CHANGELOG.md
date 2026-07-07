@@ -8,8 +8,14 @@ All notable changes to this project will be documented in this file.
 
 - Quick Insert sidebar panel with 15 component snippets across 4 categories (Layout, Content, Media, Effects)
 
+### Added
+
+- Auto-detection of overflow slides — content exceeding slide height is wrapped in `r-stretch` for auto-scaling
+
 ### Fixed
 
+- Unhandled promise rejection from non-existent `workbench.action.maximizeEditor` command
+- Hot-reload rendering issues caused by double `Reveal.sync()` calls after partial updates
 - Sidebar views not appearing due to empty `activationEvents` and restrictive `when` clauses on views
 - Slides Outline showing empty on activation (only loaded during preview)
 - Slides Outline clearing when focus moved to preview webview

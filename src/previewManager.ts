@@ -129,10 +129,9 @@ export class PreviewPanel {
       );
     }
 
-    // Fullscreen mode: close md tab and maximize editor
+    // Fullscreen mode: close md tab
     if (mode === "fullscreen") {
       this.closeMarkdownTab(document.uri);
-      vscode.commands.executeCommand("workbench.action.maximizeEditor");
     }
 
     // Window mode: detach the webview into its own native window

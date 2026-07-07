@@ -41,7 +41,7 @@ Per-slide `image=` in `<!-- slide-bg: ... -->` overrides it.
 
 Example frontmatter:
 ```yaml
-backgroundImage: https://example.com/bg.jpg
+backgroundImage: https://picx.zhimg.com/v2-e0f8d73a67132dab4b01e25b072c64f3_1440w.jpg
 backgroundSize: cover
 backgroundOpacity: 0.3
 ```
@@ -106,15 +106,19 @@ Combining all available keys in one comment:
 
 # Global Background Summary
 
+<div class="r-stretch">
+
 Frontmatter keys for slide-wide defaults:
 
-| Key                  | Example Value        |
-|----------------------|----------------------|
-| `backgroundColor`    | `"#1a1a2e"`          |
-| `backgroundImage`    | `"./assets/bg.jpg"`  |
-| `backgroundSize`     | `"cover"`            |
-| `backgroundPosition` | `"center"`           |
-| `backgroundRepeat`   | `"no-repeat"`        |
-| `backgroundOpacity`  | `0.5`                |
+| Key                  | Example Value       |
+| -------------------- | ------------------- |
+| `backgroundColor`    | `"#1a1a2e"`         |
+| `backgroundImage`    | `"./assets/bg.jpg"` |
+| `backgroundSize`     | `"cover"`           |
+| `backgroundPosition` | `"center"`          |
+| `backgroundRepeat`   | `"no-repeat"`       |
+| `backgroundOpacity`  | `0.5`               |
 
 Per-slide `<!-- slide-bg: ... -->` always overrides the matching global value.
+
+</div>
